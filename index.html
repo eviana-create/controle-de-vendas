@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema de Controle de Vendas Adega Lounge</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Sistema de Controle de Vendas Adega Lounge</h1>
+
+    <form id="form-venda">
+      <input type="text" id="produto" placeholder="Nome do Produto" required />
+      <input type="number" id="quantidade" placeholder="Quantidade" required />
+      <input type="number" id="preco" placeholder="Preço Unitário (R$)" required step="0.01" />
+      <button type="submit">Adicionar Venda</button>
+    </form>
+
+    <h2>Vendas Realizadas</h2>
+    <div class="tabela-responsiva">
+      <table id="tabela-vendas">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário (R$)</th>
+            <th>Total (R$)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3>Total de Vendas: R$ <span id="total-vendas">0.00</span></h3>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
