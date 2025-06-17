@@ -31,9 +31,10 @@ function atualizarTabelaVendas() {
   });
 
   document.getElementById('total-vendas').textContent = totalGeral.toFixed(2);
+  atualizarLucro();
 }
 
-// Remove uma venda pelo índice
+// Remove uma venda
 function removerVenda(index) {
   vendas.splice(index, 1);
   salvarDados();
@@ -70,9 +71,9 @@ document.getElementById('form-compra').addEventListener('submit', function (e) {
   const produto = document.getElementById('produto-compra').value;
   const quantidade = parseInt(document.getElementById('quantidade-compra').value);
   const preco = parseFloat(document.getElementById('preco-compra').value);
-  const dataCompra = document.getElementById('data-compra').value;
+  const dataCompra = new Date().toLocaleDateString(); // automático
 
-  if (!produto || quantidade <= 0 || preco <= 0 || !dataCompra) {
+  if (!produto || quantidade <= 0 || preco <= 0) {
     alert('Preencha corretamente os dados da compra.');
     return;
   }
@@ -84,7 +85,6 @@ document.getElementById('form-compra').addEventListener('submit', function (e) {
   document.getElementById('produto-compra').value = '';
   document.getElementById('quantidade-compra').value = '';
   document.getElementById('preco-compra').value = '';
-  document.getElementById('data-compra').value = '';
 
   alert('Compra registrada com sucesso!');
 });
@@ -107,8 +107,92 @@ function atualizarTabelaCompras() {
     `;
     tbody.appendChild(tr);
   });
+
+  atualizarLucro();
 }
 
-// Inicializa as tabelas ao carregar a página
+// Calcula e exibe o lucro total
+function atualizarLucro() {
+  let totalCompras = 0;
+
+  compras.forEach(compra => {
+    totalCompras += compra.quantidade * compra.preco;
+  });
+
+  const lucro = totalGeral - totalCompras;
+  document.getElementById('lucro-total').textContent = lucro.toFixed(2);
+}
+
+document.getElementById('finalizar-expediente').addEventListener('click', () => {
+  if (vendas.length === 0 && compras.length === 0) {
+    alert("Nenhuma venda ou compra registrada para este expediente.");
+    return;
+  }
+
+  const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
+
+  const novoExpediente = {
+    data: new Date().toLocaleString(),
+    vendas: vendas,
+    compras: compras
+  };
+
+  historico.push(novoExpediente);
+  localStorage.setItem('historicoExpedientes', JSON.stringify(historico));
+
+  vendas = [];
+  compras = [];
+  salvarDados();
+  atualizarTabelaVendas();
+  atualizarTabelaCompras();
+
+  alert("Expediente finalizado com sucesso!");
+});
+
+document.getElementById('ver-historico').addEventListener('click', () => {
+  const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
+  const container = document.getElementById('historico-container');
+  container.innerHTML = '';
+
+  if (historico.length === 0) {
+    container.innerHTML = '<p>Nenhum expediente anterior registrado.</p>';
+    return;
+  }
+
+  historico.forEach((exp, i) => {
+    let totalVendas = 0;
+    let totalCompras = 0;
+
+    exp.vendas.forEach(venda => {
+      totalVendas += venda.quantidade * venda.preco;
+    });
+
+    exp.compras.forEach(compra => {
+      totalCompras += compra.quantidade * compra.preco;
+    });
+
+    const lucro = totalVendas - totalCompras;
+
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <h4>Expediente ${i + 1} - ${exp.data}</h4>
+      <p><strong>Total de Vendas:</strong> R$ ${totalVendas.toFixed(2)}</p>
+      <p><strong>Total de Compras:</strong> R$ ${totalCompras.toFixed(2)}</p>
+      <p><strong>Lucro:</strong> <span style="color: ${lucro >= 0 ? 'green' : 'red'};">R$ ${lucro.toFixed(2)}</span></p>
+      <details>
+        <summary>Ver detalhes completos</summary>
+        <pre>${JSON.stringify(exp, null, 2)}</pre>
+      </details>
+    `;
+    div.style.border = '1px solid #ccc';
+    div.style.margin = '10px 0';
+    div.style.padding = '10px';
+    container.appendChild(div);
+  });
+});
+
+
+
+// Inicializa
 atualizarTabelaVendas();
 atualizarTabelaCompras();
