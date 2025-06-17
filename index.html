@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sistema de Controle de Vendas Adega Lounge</title>
   <link rel="stylesheet" href="style.css" />
-<link rel="manifest" href="manifest.json" />
+  <link rel="manifest" href="/controle-de-vendas/manifest.json" />
 </head>
 <body>
   <div class="container">
@@ -70,35 +70,35 @@
     </div>
 
     <div id="historico-container" style="margin-top: 20px;"></div>
-<br>
-<button id="btn-instalar" style="display:none;">Instalar App</button>
+
+    <br />
+    <button id="btn-instalar" style="display:none;">Instalar App</button>
   </div>
 
   <script src="script.js"></script>
-<script>
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  document.getElementById('btn-instalar').style.display = 'inline-block';
-});
-
-document.getElementById('btn-instalar').addEventListener('click', () => {
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => {
-      deferredPrompt = null;
-      document.getElementById('btn-instalar').style.display = 'none';
+  <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('btn-instalar').style.display = 'inline-block';
     });
-  }
-});
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js')
-    .then(() => console.log("Service Worker registrado!"))
-    .catch(err => console.error("Erro ao registrar Service Worker:", err));
-}
-</script>
+    document.getElementById('btn-instalar').addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          document.getElementById('btn-instalar').style.display = 'none';
+        });
+      }
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
+        .then(() => console.log("Service Worker registrado!"))
+        .catch(err => console.error("Erro ao registrar Service Worker:", err));
+    }
+  </script>
 </body>
 </html>
