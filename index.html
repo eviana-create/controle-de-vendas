@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -10,7 +11,6 @@
   <div class="container">
     <h1>Sistema de Controle de Vendas - Adega Lounge</h1>
 
-    <!-- Formulário de Vendas -->
     <h2>Registrar Venda</h2>
     <form id="form-venda">
       <input type="text" id="produto" placeholder="Nome do Produto" required />
@@ -36,7 +36,6 @@
       </table>
     </div>
 
-    <!-- Formulário de Compras -->
     <h2>Registrar Compra</h2>
     <form id="form-compra">
       <input type="text" id="produto-compra" placeholder="Produto Comprado" required />
@@ -61,21 +60,17 @@
       </table>
     </div>
 
-    <!-- Totais -->
     <h3>Total de Vendas: R$ <span id="total-vendas">0.00</span></h3>
     <h3>Lucro Total: R$ <span id="lucro-total">0.00</span></h3>
 
-    <!-- Botões de controle -->
     <div style="margin-top: 20px;">
       <button id="finalizar-expediente">Finalizar Expediente</button>
       <button id="ver-historico">Ver Histórico</button>
     </div>
 
-    <!-- Histórico -->
     <div id="historico-container" style="margin-top: 20px;"></div>
   </div>
 
-  <!-- Script -->
   <script src="script.js"></script>
 </body>
 </html>
