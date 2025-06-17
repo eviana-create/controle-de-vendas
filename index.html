@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ffcc00" />
+
 </head>
 <body>
   <div class="container">
@@ -70,10 +71,47 @@
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log('Service Worker registrado com sucesso!'))
-      .catch((err) => console.error('Erro ao registrar Service Worker:', err));
+      .then(() => console.log('Service Worker registrado!'))
+      .catch(console.error);
   }
+
+  let deferredPrompt;
+  const installBtn = document.createElement('button');
+  installBtn.textContent = "Instalar Aplicativo";
+  installBtn.style = `
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: #ffcc00;
+    color: #000;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 1000;
+  `;
+  installBtn.hidden = true;
+  document.body.appendChild(installBtn);
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.hidden = false;
+    console.log('Evento beforeinstallprompt disparado!');
+  });
+
+  installBtn.addEventListener('click', () => {
+    installBtn.hidden = true;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choiceResult) => {
+      console.log('Resultado:', choiceResult.outcome);
+      deferredPrompt = null;
+    });
+  });
 </script>
+
+
 
 </body>
 </html>

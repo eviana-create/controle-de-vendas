@@ -1,7 +1,7 @@
 {
   "name": "Sistema de Vendas - Adega Lounge",
   "short_name": "Vendas Adega",
-  "start_url": "index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#ffcc00",
