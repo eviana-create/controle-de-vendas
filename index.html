@@ -5,14 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sistema de Controle de Vendas Adega Lounge</title>
   <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ffcc00" />
-
 </head>
 <body>
   <div class="container">
-    <h1>Sistema de Controle de Vendas Adega Lounge</h1>
+    <h1>Sistema de Controle de Vendas - Adega Lounge</h1>
 
+    <!-- Formulário de Vendas -->
+    <h2>Registrar Venda</h2>
     <form id="form-venda">
       <input type="text" id="produto" placeholder="Nome do Produto" required />
       <input type="number" id="quantidade" placeholder="Quantidade" required />
@@ -20,98 +19,63 @@
       <button type="submit">Adicionar Venda</button>
     </form>
 
-    <h2>Registrar Compra</h2>
-<form id="form-compra">
-  <input type="text" id="produto-compra" placeholder="Nome do Produto" required />
-  <input type="number" id="quantidade-compra" placeholder="Quantidade Comprada" required />
-  <input type="number" id="preco-compra" placeholder="Valor Unitário (R$)" required step="0.01" />
-  <input type="date" id="data-compra" required />
-  <button type="submit">Registrar Compra</button>
-</form>
-
-
-    <h2>Vendas Realizadas</h2>
+    <h3>Vendas Realizadas</h3>
     <div class="tabela-responsiva">
       <table id="tabela-vendas">
         <thead>
           <tr>
             <th>Produto</th>
             <th>Quantidade</th>
-            <th>Preço Unitário (R$)</th>
-            <th>Total (R$)</th>
-            <th>Data da Venda</th>
-            <th>Ação</th>
+            <th>Preço Unitário</th>
+            <th>Total</th>
+            <th>Data</th>
+            <th>Ações</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
 
-    <h2>Compras Registradas</h2>
-<div class="tabela-responsiva">
-  <table id="tabela-compras">
-    <thead>
-      <tr>
-        <th>Produto</th>
-        <th>Quantidade</th>
-        <th>Valor Unitário (R$)</th>
-        <th>Total (R$)</th>
-        <th>Data da Compra</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+    <!-- Formulário de Compras -->
+    <h2>Registrar Compra</h2>
+    <form id="form-compra">
+      <input type="text" id="produto-compra" placeholder="Produto Comprado" required />
+      <input type="number" id="quantidade-compra" placeholder="Quantidade Comprada" required />
+      <input type="number" id="preco-compra" placeholder="Preço Unitário de Compra (R$)" required step="0.01" />
+      <button type="submit">Registrar Compra</button>
+    </form>
 
+    <h3>Compras Registradas</h3>
+    <div class="tabela-responsiva">
+      <table id="tabela-compras">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário</th>
+            <th>Total</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
+    <!-- Totais -->
     <h3>Total de Vendas: R$ <span id="total-vendas">0.00</span></h3>
+    <h3>Lucro Total: R$ <span id="lucro-total">0.00</span></h3>
+
+    <!-- Botões de controle -->
+    <div style="margin-top: 20px;">
+      <button id="finalizar-expediente">Finalizar Expediente</button>
+      <button id="ver-historico">Ver Histórico</button>
+    </div>
+
+    <!-- Histórico -->
+    <div id="historico-container" style="margin-top: 20px;"></div>
   </div>
 
+  <!-- Script -->
   <script src="script.js"></script>
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('service-worker.js')
-      .then(() => console.log('Service Worker registrado!'))
-      .catch(console.error);
-  }
-
-  let deferredPrompt;
-  const installBtn = document.createElement('button');
-  installBtn.textContent = "Instalar Aplicativo";
-  installBtn.style = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 20px;
-    background: #ffcc00;
-    color: #000;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    cursor: pointer;
-    z-index: 1000;
-  `;
-  installBtn.hidden = true;
-  document.body.appendChild(installBtn);
-
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.hidden = false;
-    console.log('Evento beforeinstallprompt disparado!');
-  });
-
-  installBtn.addEventListener('click', () => {
-    installBtn.hidden = true;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then((choiceResult) => {
-      console.log('Resultado:', choiceResult.outcome);
-      deferredPrompt = null;
-    });
-  });
-</script>
-
-
-
 </body>
 </html>
