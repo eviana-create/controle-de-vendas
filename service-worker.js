@@ -1,4 +1,5 @@
-const CACHE_NAME = "controle-vendas-v2"; // Altere este valor quando atualizar o app
+
+const CACHE_NAME = "controle-vendas-v2";
 
 const FILES_TO_CACHE = [
   "/controle-de-vendas/",
@@ -18,7 +19,7 @@ self.addEventListener("install", (event) => {
       return cache.addAll(FILES_TO_CACHE);
     })
   );
-  self.skipWaiting(); // Ativa imediatamente após instalação
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -35,7 +36,7 @@ self.addEventListener("activate", (event) => {
       );
     })
   );
-  self.clients.claim(); // Assume o controle imediatamente
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", (event) => {
