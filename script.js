@@ -1,8 +1,9 @@
+
 let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
 let compras = JSON.parse(localStorage.getItem('compras')) || [];
 let totalGeral = 0;
 
-// Salva vendas e compras no localStorage
+// Salva dados no localStorage
 function salvarDados() {
   localStorage.setItem('vendas', JSON.stringify(vendas));
   localStorage.setItem('compras', JSON.stringify(compras));
@@ -41,14 +42,14 @@ function removerVenda(index) {
   atualizarTabelaVendas();
 }
 
-// Envia o formulário de venda
+// Registro de nova venda
 document.getElementById('form-venda').addEventListener('submit', function (e) {
   e.preventDefault();
 
   const produto = document.getElementById('produto').value;
   const quantidade = parseInt(document.getElementById('quantidade').value);
   const preco = parseFloat(document.getElementById('preco').value);
-  const dataVenda = new Date().toLocaleDateString();
+  const dataVenda = new Date().toLocaleString(); // data + hora
 
   if (!produto || quantidade <= 0 || preco <= 0) {
     alert('Preencha corretamente os dados da venda.');
@@ -64,14 +65,14 @@ document.getElementById('form-venda').addEventListener('submit', function (e) {
   document.getElementById('preco').value = '';
 });
 
-// Envia o formulário de compra
+// Registro de nova compra
 document.getElementById('form-compra').addEventListener('submit', function (e) {
   e.preventDefault();
 
   const produto = document.getElementById('produto-compra').value;
   const quantidade = parseInt(document.getElementById('quantidade-compra').value);
   const preco = parseFloat(document.getElementById('preco-compra').value);
-  const dataCompra = new Date().toLocaleDateString(); // automático
+  const dataCompra = new Date().toLocaleString(); // data + hora
 
   if (!produto || quantidade <= 0 || preco <= 0) {
     alert('Preencha corretamente os dados da compra.');
@@ -111,7 +112,7 @@ function atualizarTabelaCompras() {
   atualizarLucro();
 }
 
-// Calcula e exibe o lucro total
+// Calcula e atualiza o lucro
 function atualizarLucro() {
   let totalCompras = 0;
 
@@ -123,6 +124,7 @@ function atualizarLucro() {
   document.getElementById('lucro-total').textContent = lucro.toFixed(2);
 }
 
+// Finaliza expediente e salva no histórico
 document.getElementById('finalizar-expediente').addEventListener('click', () => {
   if (vendas.length === 0 && compras.length === 0) {
     alert("Nenhuma venda ou compra registrada para este expediente.");
@@ -149,6 +151,7 @@ document.getElementById('finalizar-expediente').addEventListener('click', () => 
   alert("Expediente finalizado com sucesso!");
 });
 
+// Exibe histórico de expedientes
 document.getElementById('ver-historico').addEventListener('click', () => {
   const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
   const container = document.getElementById('historico-container');
@@ -191,8 +194,6 @@ document.getElementById('ver-historico').addEventListener('click', () => {
   });
 });
 
-
-
-// Inicializa
+// Inicialização
 atualizarTabelaVendas();
 atualizarTabelaCompras();
