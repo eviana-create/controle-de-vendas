@@ -15,7 +15,9 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
-  self.skipWaiting(); // força ativação imediata
+  self.skipWaiting(); // já no evento 'install'
+  self.clients.claim(); // no evento 'activate'
+
 });
 
 // Ativa o novo cache

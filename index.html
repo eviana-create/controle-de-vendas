@@ -136,9 +136,14 @@
 
       reg.onupdatefound = () => {
         const newWorker = reg.installing;
+
         newWorker.onstatechange = () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            document.getElementById('update-notification').style.display = 'block';
+          if (
+            newWorker.state === 'installed' &&
+            navigator.serviceWorker.controller
+          ) {
+            console.log('Nova versão detectada, recarregando automaticamente...');
+            setTimeout(() => window.location.reload(), 3000); // espera 3 segundos e recarrega
           }
         };
       };
