@@ -1,48 +1,39 @@
-
-const CACHE_NAME = "controle-vendas-v2";
-
-const FILES_TO_CACHE = [
-  "/controle-de-vendas/",
-  "/controle-de-vendas/index.html",
-  "/controle-de-vendas/style.css",
-  "/controle-de-vendas/script.js",
-  "/controle-de-vendas/manifest.json",
-  "/controle-de-vendas/icons/icon-192.png",
-  "/controle-de-vendas/icons/icon-512.png"
+const CACHE_NAME = 'controle-vendas-v1';
+const urlsToCache = [
+  './',
+  './index.html',
+  './style.css',
+  './script.js',
+  './manifest.json',
+  './icon-192.png',
+  './icon-512.png'
 ];
 
-self.addEventListener("install", (event) => {
-  console.log("[ServiceWorker] Instalando...");
+// Instala o service worker
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log("[ServiceWorker] Arquivos em cache");
-      return cache.addAll(FILES_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(urlsToCache))
   );
-  self.skipWaiting();
 });
 
-self.addEventListener("activate", (event) => {
-  console.log("[ServiceWorker] Ativando...");
+// Ativa e limpa caches antigos
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(
-        keyList.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log("[ServiceWorker] Removendo cache antigo", key);
-            return caches.delete(key);
-          }
+    caches.keys().then(keyList =>
+      Promise.all(
+        keyList.map(key => {
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
-      );
-    })
+      )
+    )
   );
-  self.clients.claim();
 });
 
-self.addEventListener("fetch", (event) => {
+// Intercepta requisições
+self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request)
+      .then(response => response || fetch(event.request))
   );
 });
