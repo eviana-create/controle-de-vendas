@@ -131,24 +131,31 @@
 
     if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
-    .then((reg) => {
-      console.log("Service Worker registrado!");
-
-      reg.onupdatefound = () => {
+    .then(reg => {
+      reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              // Já existe outra versão controlando — notifica
+              console.log('Nova versão encontrada!');
 
-        newWorker.onstatechange = () => {
-          if (
-            newWorker.state === 'installed' &&
-            navigator.serviceWorker.controller
-          ) {
-            console.log('Nova versão detectada, recarregando automaticamente...');
-            setTimeout(() => window.location.reload(), 3000); // espera 3 segundos e recarrega
+              // Pergunta ao SW para ativar
+              reg.waiting.postMessage('SKIP_WAITING');
+            }
           }
-        };
-      };
-    })
-    .catch(err => console.error("Erro ao registrar Service Worker:", err));
+        });
+      });
+    });
+
+  // Quando o SW assume o controle, recarregamos somente uma vez
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      window.location.reload();
+      refreshing = true;
+    }
+  });
 }
 
   </script>
