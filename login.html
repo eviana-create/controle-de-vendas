@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - Adega Lounge</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Login - Adega Lounge</h2>
+
+    <!-- Login -->
+    <form id="login-form">
+      <input type="text" id="usuario" placeholder="Usuário" required />
+      <input type="password" id="senha" placeholder="Senha" required />
+      <button type="submit">Entrar</button>
+      <p id="mensagem-erro" style="color: red; display: none;">Usuário ou senha incorretos.</p>
+    </form>
+
+    <!-- Links -->
+    <p>
+      <a href="#" onclick="mostrarCadastro()">Criar conta</a> |
+      <a href="#" onclick="recuperarSenha()">Esqueci a senha</a>
+    </p>
+
+    <!-- Cadastro -->
+    <form id="cadastro-form" style="display: none;">
+      <input type="text" id="novo-usuario" placeholder="Novo Usuário" required />
+      <input type="password" id="nova-senha" placeholder="Nova Senha" required />
+      <button type="submit">Cadastrar</button>
+      <p style="color: green;" id="mensagem-cadastro"></p>
+    </form>
+  </div>
+
+  <script>
+    const loginForm = document.getElementById('login-form');
+    const cadastroForm = document.getElementById('cadastro-form');
+    const mensagemErro = document.getElementById('mensagem-erro');
+    const mensagemCadastro = document.getElementById('mensagem-cadastro');
+
+    function mostrarCadastro() {
+      loginForm.style.display = 'none';
+      cadastroForm.style.display = 'block';
+    }
+
+    function recuperarSenha() {
+      const usuario = prompt("Digite seu usuário:");
+      const salvo = localStorage.getItem('usuario');
+      const senha = localStorage.getItem('senha');
+
+      if (usuario && usuario === salvo) {
+        alert(`Sua senha é: ${senha}`);
+      } else {
+        alert("Usuário não encontrado.");
+      }
+    }
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const usuario = document.getElementById('usuario').value;
+      const senha = document.getElementById('senha').value;
+      const salvo = localStorage.getItem('usuario') || 'admin';
+      const salvaSenha = localStorage.getItem('senha') || '1234';
+
+      if (usuario === salvo && senha === salvaSenha) {
+        localStorage.setItem('logado', 'true');
+        window.location.href = 'index.html';
+      } else {
+        mensagemErro.style.display = 'block';
+      }
+    });
+
+    cadastroForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const novoUsuario = document.getElementById('novo-usuario').value;
+      const novaSenha = document.getElementById('nova-senha').value;
+
+      localStorage.setItem('usuario', novoUsuario);
+      localStorage.setItem('senha', novaSenha);
+      mensagemCadastro.textContent = 'Usuário cadastrado com sucesso! Você pode fazer login.';
+      setTimeout(() => {
+        loginForm.style.display = 'block';
+        cadastroForm.style.display = 'none';
+        mensagemCadastro.textContent = '';
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

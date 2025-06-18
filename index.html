@@ -6,9 +6,15 @@
   <title>Sistema de Controle de Vendas Adega Lounge</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
-  <script src="script.js" defer></script> <!-- ✅ Adicionado defer -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+  <script>
+  if (localStorage.getItem('logado') !== 'true') {
+    window.location.href = 'login.html';
+  }
+</script>
+
   <div class="container">
     <h1>Sistema de Controle de Vendas - Adega Lounge</h1>
 
@@ -104,14 +110,18 @@
       <h2>Histórico de Expedientes</h2>
       <button id="ver-historico">Ver Histórico</button>
       <div id="historico-container" style="margin-top: 20px;"></div>
+      <canvas id="graficoLucro" style="max-width: 100%; margin-top: 30px;"></canvas>
     </div>
+    <button onclick="logout()" style="background: #f44336; color: white;">Sair</button>
+
 
     <!-- Botão Instalar PWA -->
     <br />
     <button id="btn-instalar" style="display:none;">📲 Instalar App</button>
   </div>
 
-  <!-- Service Worker + Instalação PWA -->
+  <script src="script.js"></script>
+
   <script>
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -138,7 +148,6 @@
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed') {
                 if (navigator.serviceWorker.controller) {
-                  console.log('Nova versão encontrada!');
                   reg.waiting?.postMessage('SKIP_WAITING');
                 }
               }
@@ -155,14 +164,16 @@
       });
     }
 
-    function mostrarAba(id) {
-      const abas = document.querySelectorAll('.aba');
-      abas.forEach(aba => aba.style.display = 'none');
-      const abaSelecionada = document.getElementById(id);
-      if (abaSelecionada) {
-        abaSelecionada.style.display = 'block';
-      }
+    function mostrarAba(abaId) {
+      document.querySelectorAll('.aba').forEach(div => div.style.display = 'none');
+      document.getElementById(abaId).style.display = 'block';
     }
+
+    function logout() {
+  localStorage.setItem('logado', 'false');
+  window.location.href = 'login.html';
+}
+
   </script>
 
   <div id="update-notification" style="display: none; background: #ffcc00; color: black; padding: 10px; text-align: center;">

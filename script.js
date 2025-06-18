@@ -1,16 +1,15 @@
+// script.js
 let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
 let compras = JSON.parse(localStorage.getItem('compras')) || [];
 let historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
 let totalGeral = 0;
 
-// Salvar dados
 function salvarDados() {
   localStorage.setItem('vendas', JSON.stringify(vendas));
   localStorage.setItem('compras', JSON.stringify(compras));
   localStorage.setItem('historicoExpedientes', JSON.stringify(historico));
 }
 
-// ======================= VENDAS =======================
 function atualizarTabelaVendas() {
   const tbody = document.querySelector('#tabela-vendas tbody');
   tbody.innerHTML = '';
@@ -70,7 +69,6 @@ document.getElementById('form-venda').addEventListener('submit', function (e) {
   this.reset();
 });
 
-// ======================= COMPRAS =======================
 function atualizarTabelaCompras() {
   const tbody = document.querySelector('#tabela-compras tbody');
   tbody.innerHTML = '';
@@ -114,7 +112,6 @@ document.getElementById('form-compra').addEventListener('submit', function (e) {
   alert('Compra registrada com sucesso!');
 });
 
-// ======================= ESTOQUE =======================
 function calcularEstoque() {
   const estoque = {};
 
@@ -155,7 +152,6 @@ function atualizarTabelaEstoque() {
   }
 }
 
-// ======================= LUCRO =======================
 function atualizarLucro() {
   let totalCompras = 0;
 
@@ -167,7 +163,37 @@ function atualizarLucro() {
   document.getElementById('lucro-total').textContent = lucro.toFixed(2);
 }
 
-// ======================= HISTÓRICO =======================
+// ========== GRÁFICO DE LUCRO ==========
+let chartLucro;
+
+function gerarGraficoLucro(labels, lucros) {
+  const ctx = document.getElementById('graficoLucro').getContext('2d');
+
+  if (chartLucro) chartLucro.destroy();
+
+  chartLucro = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Lucro por Expediente',
+        data: lucros,
+        backgroundColor: lucros.map(v => v >= 0 ? 'rgba(0, 200, 83, 0.6)' : 'rgba(255, 82, 82, 0.6)'),
+        borderColor: lucros.map(v => v >= 0 ? 'rgba(0, 150, 0, 1)' : 'rgba(200, 0, 0, 1)'),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
 document.getElementById('ver-historico').addEventListener('click', () => {
   const container = document.getElementById('historico-container');
   container.innerHTML = '';
@@ -175,7 +201,50 @@ document.getElementById('ver-historico').addEventListener('click', () => {
   if (historico.length === 0) {
     container.innerHTML = '<p>Nenhum expediente anterior registrado.</p>';
     return;
-  }
+    gerarGraficoLucro(); // <-- Adicione isso no fim
+};
+  
+  
+function gerarGraficoLucro() {
+  const ctx = document.getElementById('graficoLucro').getContext('2d');
+  const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
+
+  const labels = historico.map((exp, i) => `Expediente ${i + 1}`);
+  const lucros = historico.map(exp => {
+  const totalVendas = exp.vendas.reduce((s, v) => s + (v.quantidade * v.preco), 0);
+  const totalCompras = exp.compras.reduce((s, c) => s + (c.quantidade * c.preco), 0);
+    return totalVendas - totalCompras;
+  });
+
+  if (window.graficoLucro) window.graficoLucro.destroy(); // Evita duplicação
+
+  window.graficoLucro = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Lucro por Expediente',
+        data: lucros,
+        backgroundColor: lucros.map(v => v >= 0 ? 'green' : 'red'),
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: context => `Lucro: R$ ${context.raw.toFixed(2)}`
+        }}
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+  const labels = [];
+  const lucros = [];
 
   historico.forEach((exp, i) => {
     let totalVendas = 0;
@@ -185,6 +254,8 @@ document.getElementById('ver-historico').addEventListener('click', () => {
     exp.compras.forEach(c => totalCompras += c.quantidade * c.preco);
 
     const lucro = totalVendas - totalCompras;
+    labels.push(`Exp ${i + 1}`);
+    lucros.push(lucro);
 
     const div = document.createElement('div');
     div.innerHTML = `
@@ -202,9 +273,10 @@ document.getElementById('ver-historico').addEventListener('click', () => {
     div.style.padding = '10px';
     container.appendChild(div);
   });
+
+  gerarGraficoLucro(labels, lucros);
 });
 
-// Finalizar expediente
 document.getElementById('finalizar-expediente').addEventListener('click', () => {
   if (vendas.length === 0 && compras.length === 0) {
     alert("Nenhuma venda ou compra registrada para este expediente.");

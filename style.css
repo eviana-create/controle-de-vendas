@@ -79,3 +79,23 @@ th {
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+@media (max-width: 600px) {
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  table {
+    font-size: 14px;
+  }
+
+  th:nth-child(3), td:nth-child(3),
+  th:nth-child(4), td:nth-child(4) {
+    display: none; /* Esconde colunas menos essenciais em telas pequenas */
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+}
