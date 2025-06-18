@@ -1,15 +1,16 @@
-
 let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
 let compras = JSON.parse(localStorage.getItem('compras')) || [];
+let historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
 let totalGeral = 0;
 
-// Salva dados no localStorage
+// Salvar dados
 function salvarDados() {
   localStorage.setItem('vendas', JSON.stringify(vendas));
   localStorage.setItem('compras', JSON.stringify(compras));
+  localStorage.setItem('historicoExpedientes', JSON.stringify(historico));
 }
 
-// Atualiza a tabela de vendas
+// ======================= VENDAS =======================
 function atualizarTabelaVendas() {
   const tbody = document.querySelector('#tabela-vendas tbody');
   tbody.innerHTML = '';
@@ -35,62 +36,41 @@ function atualizarTabelaVendas() {
   atualizarLucro();
 }
 
-// Remove uma venda
 function removerVenda(index) {
   vendas.splice(index, 1);
   salvarDados();
   atualizarTabelaVendas();
+  atualizarTabelaEstoque();
 }
 
-// Registro de nova venda
 document.getElementById('form-venda').addEventListener('submit', function (e) {
   e.preventDefault();
 
   const produto = document.getElementById('produto').value;
   const quantidade = parseInt(document.getElementById('quantidade').value);
   const preco = parseFloat(document.getElementById('preco').value);
-  const dataVenda = new Date().toLocaleString(); // data + hora
+  const dataVenda = new Date().toLocaleString();
 
   if (!produto || quantidade <= 0 || preco <= 0) {
     alert('Preencha corretamente os dados da venda.');
     return;
   }
 
-  vendas.push({ produto, quantidade, preco, dataVenda });
-  salvarDados();
-  atualizarTabelaVendas();
-
-  document.getElementById('produto').value = '';
-  document.getElementById('quantidade').value = '';
-  document.getElementById('preco').value = '';
-});
-
-// Registro de nova compra
-document.getElementById('form-compra').addEventListener('submit', function (e) {
-  e.preventDefault();
-
-  const produto = document.getElementById('produto-compra').value;
-  const quantidade = parseInt(document.getElementById('quantidade-compra').value);
-  const preco = parseFloat(document.getElementById('preco-compra').value);
-  const dataCompra = new Date().toLocaleString(); // data + hora
-
-  if (!produto || quantidade <= 0 || preco <= 0) {
-    alert('Preencha corretamente os dados da compra.');
+  const estoque = calcularEstoque();
+  if (!estoque[produto] || estoque[produto].quantidade < quantidade) {
+    alert('Estoque insuficiente!');
     return;
   }
 
-  compras.push({ produto, quantidade, preco, dataCompra });
+  vendas.push({ produto, quantidade, preco, dataVenda });
   salvarDados();
-  atualizarTabelaCompras();
+  atualizarTabelaVendas();
+  atualizarTabelaEstoque();
 
-  document.getElementById('produto-compra').value = '';
-  document.getElementById('quantidade-compra').value = '';
-  document.getElementById('preco-compra').value = '';
-
-  alert('Compra registrada com sucesso!');
+  this.reset();
 });
 
-// Atualiza a tabela de compras
+// ======================= COMPRAS =======================
 function atualizarTabelaCompras() {
   const tbody = document.querySelector('#tabela-compras tbody');
   tbody.innerHTML = '';
@@ -112,7 +92,70 @@ function atualizarTabelaCompras() {
   atualizarLucro();
 }
 
-// Calcula e atualiza o lucro
+document.getElementById('form-compra').addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  const produto = document.getElementById('produto-compra').value;
+  const quantidade = parseInt(document.getElementById('quantidade-compra').value);
+  const preco = parseFloat(document.getElementById('preco-compra').value);
+  const dataCompra = new Date().toLocaleString();
+
+  if (!produto || quantidade <= 0 || preco <= 0) {
+    alert('Preencha corretamente os dados da compra.');
+    return;
+  }
+
+  compras.push({ produto, quantidade, preco, dataCompra });
+  salvarDados();
+  atualizarTabelaCompras();
+  atualizarTabelaEstoque();
+
+  this.reset();
+  alert('Compra registrada com sucesso!');
+});
+
+// ======================= ESTOQUE =======================
+function calcularEstoque() {
+  const estoque = {};
+
+  compras.forEach(compra => {
+    if (!estoque[compra.produto]) {
+      estoque[compra.produto] = { quantidade: 0, totalCompra: 0 };
+    }
+    estoque[compra.produto].quantidade += compra.quantidade;
+    estoque[compra.produto].totalCompra += compra.quantidade * compra.preco;
+  });
+
+  vendas.forEach(venda => {
+    if (!estoque[venda.produto]) {
+      estoque[venda.produto] = { quantidade: 0, totalCompra: 0 };
+    }
+    estoque[venda.produto].quantidade -= venda.quantidade;
+  });
+
+  return estoque;
+}
+
+function atualizarTabelaEstoque() {
+  const tbody = document.querySelector('#tabela-estoque tbody');
+  tbody.innerHTML = '';
+  const estoque = calcularEstoque();
+
+  for (let produto in estoque) {
+    const item = estoque[produto];
+    const precoMedio = item.totalCompra / (item.quantidade + (vendas.filter(v => v.produto === produto).reduce((s, v) => s + v.quantidade, 0)) || 1);
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${produto}</td>
+      <td>${item.quantidade}</td>
+      <td>R$ ${precoMedio.toFixed(2)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+// ======================= LUCRO =======================
 function atualizarLucro() {
   let totalCompras = 0;
 
@@ -124,36 +167,8 @@ function atualizarLucro() {
   document.getElementById('lucro-total').textContent = lucro.toFixed(2);
 }
 
-// Finaliza expediente e salva no histórico
-document.getElementById('finalizar-expediente').addEventListener('click', () => {
-  if (vendas.length === 0 && compras.length === 0) {
-    alert("Nenhuma venda ou compra registrada para este expediente.");
-    return;
-  }
-
-  const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
-
-  const novoExpediente = {
-    data: new Date().toLocaleString(),
-    vendas: vendas,
-    compras: compras
-  };
-
-  historico.push(novoExpediente);
-  localStorage.setItem('historicoExpedientes', JSON.stringify(historico));
-
-  vendas = [];
-  compras = [];
-  salvarDados();
-  atualizarTabelaVendas();
-  atualizarTabelaCompras();
-
-  alert("Expediente finalizado com sucesso!");
-});
-
-// Exibe histórico de expedientes
+// ======================= HISTÓRICO =======================
 document.getElementById('ver-historico').addEventListener('click', () => {
-  const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
   const container = document.getElementById('historico-container');
   container.innerHTML = '';
 
@@ -166,13 +181,8 @@ document.getElementById('ver-historico').addEventListener('click', () => {
     let totalVendas = 0;
     let totalCompras = 0;
 
-    exp.vendas.forEach(venda => {
-      totalVendas += venda.quantidade * venda.preco;
-    });
-
-    exp.compras.forEach(compra => {
-      totalCompras += compra.quantidade * compra.preco;
-    });
+    exp.vendas.forEach(v => totalVendas += v.quantidade * v.preco);
+    exp.compras.forEach(c => totalCompras += c.quantidade * c.preco);
 
     const lucro = totalVendas - totalCompras;
 
@@ -194,6 +204,30 @@ document.getElementById('ver-historico').addEventListener('click', () => {
   });
 });
 
+// Finalizar expediente
+document.getElementById('finalizar-expediente').addEventListener('click', () => {
+  if (vendas.length === 0 && compras.length === 0) {
+    alert("Nenhuma venda ou compra registrada para este expediente.");
+    return;
+  }
+
+  historico.push({
+    data: new Date().toLocaleString(),
+    vendas: [...vendas],
+    compras: [...compras]
+  });
+
+  vendas = [];
+  compras = [];
+  salvarDados();
+  atualizarTabelaVendas();
+  atualizarTabelaCompras();
+  atualizarTabelaEstoque();
+
+  alert("Expediente finalizado com sucesso!");
+});
+
 // Inicialização
 atualizarTabelaVendas();
 atualizarTabelaCompras();
+atualizarTabelaEstoque();
