@@ -130,15 +130,27 @@
     });
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
-        .then(() => console.log("Service Worker registrado!"))
-        .catch(err => console.error("Erro ao registrar Service Worker:", err));
-    }
+  navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
+    .then((reg) => {
+      console.log("Service Worker registrado!");
 
-    function mostrarAba(id) {
-      document.querySelectorAll('.aba').forEach(el => el.style.display = 'none');
-      document.getElementById(id).style.display = 'block';
-    }
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            document.getElementById('update-notification').style.display = 'block';
+          }
+        };
+      };
+    })
+    .catch(err => console.error("Erro ao registrar Service Worker:", err));
+}
+
   </script>
+
+<div id="update-notification" style="display: none; background: #ffcc00; color: black; padding: 10px; text-align: center;">
+  Nova versão disponível. <button onclick="location.reload()">Atualizar agora</button>
+</div>
+
 </body>
 </html>
