@@ -1,4 +1,4 @@
-const CACHE_NAME = 'controle-vendas-v2'; // Mude a versão a cada nova atualização
+const CACHE_NAME = 'controle-vendas-v3'; // Mude a versão a cada nova atualização
 
 const urlsToCache = [
   './',
