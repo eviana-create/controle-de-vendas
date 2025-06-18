@@ -6,6 +6,7 @@
   <title>Sistema de Controle de Vendas Adega Lounge</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
+  <script src="script.js" defer></script> <!-- ✅ Adicionado defer -->
 </head>
 <body>
   <div class="container">
@@ -110,7 +111,7 @@
     <button id="btn-instalar" style="display:none;">📲 Instalar App</button>
   </div>
 
-  <script src="script.js"></script>
+  <!-- Service Worker + Instalação PWA -->
   <script>
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
@@ -130,39 +131,42 @@
     });
 
     if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
-    .then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              // Já existe outra versão controlando — notifica
-              console.log('Nova versão encontrada!');
-
-              // Pergunta ao SW para ativar
-              reg.waiting.postMessage('SKIP_WAITING');
-            }
-          }
+      navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
+        .then(reg => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  console.log('Nova versão encontrada!');
+                  reg.waiting?.postMessage('SKIP_WAITING');
+                }
+              }
+            });
+          });
         });
+
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          window.location.reload();
+          refreshing = true;
+        }
       });
-    });
-
-  // Quando o SW assume o controle, recarregamos somente uma vez
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      window.location.reload();
-      refreshing = true;
     }
-  });
-}
 
+    function mostrarAba(id) {
+      const abas = document.querySelectorAll('.aba');
+      abas.forEach(aba => aba.style.display = 'none');
+      const abaSelecionada = document.getElementById(id);
+      if (abaSelecionada) {
+        abaSelecionada.style.display = 'block';
+      }
+    }
   </script>
 
-<div id="update-notification" style="display: none; background: #ffcc00; color: black; padding: 10px; text-align: center;">
-  Nova versão disponível. <button onclick="location.reload()">Atualizar agora</button>
-</div>
-
+  <div id="update-notification" style="display: none; background: #ffcc00; color: black; padding: 10px; text-align: center;">
+    Nova versão disponível. <button onclick="location.reload()">Atualizar agora</button>
+  </div>
 </body>
 </html>
