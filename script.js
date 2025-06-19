@@ -201,47 +201,7 @@ document.getElementById('ver-historico').addEventListener('click', () => {
   if (historico.length === 0) {
     container.innerHTML = '<p>Nenhum expediente anterior registrado.</p>';
     return;
-    gerarGraficoLucro(); // <-- Adicione isso no fim
-};
-  
-  
-function gerarGraficoLucro() {
-  const ctx = document.getElementById('graficoLucro').getContext('2d');
-  const historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
-
-  const labels = historico.map((exp, i) => `Expediente ${i + 1}`);
-  const lucros = historico.map(exp => {
-  const totalVendas = exp.vendas.reduce((s, v) => s + (v.quantidade * v.preco), 0);
-  const totalCompras = exp.compras.reduce((s, c) => s + (c.quantidade * c.preco), 0);
-    return totalVendas - totalCompras;
-  });
-
-  if (window.graficoLucro) window.graficoLucro.destroy(); // Evita duplicação
-
-  window.graficoLucro = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Lucro por Expediente',
-        data: lucros,
-        backgroundColor: lucros.map(v => v >= 0 ? 'green' : 'red'),
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { callbacks: {
-          label: context => `Lucro: R$ ${context.raw.toFixed(2)}`
-        }}
-      },
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
+  }
 
   const labels = [];
   const lucros = [];
@@ -277,6 +237,77 @@ function gerarGraficoLucro() {
   gerarGraficoLucro(labels, lucros);
 });
 
+  
+  
+function gerarGraficoLucro(labels, lucros) {
+  const ctx = document.getElementById('graficoLucro').getContext('2d');
+
+  if (window.graficoLucro) window.graficoLucro.destroy();
+
+  window.graficoLucro = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Lucro por Expediente',
+        data: lucros,
+        backgroundColor: lucros.map(v => v >= 0 ? 'rgba(0, 200, 83, 0.6)' : 'rgba(255, 82, 82, 0.6)'),
+        borderColor: lucros.map(v => v >= 0 ? 'rgba(0, 150, 0, 1)' : 'rgba(200, 0, 0, 1)'),
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: context => `Lucro: R$ ${context.raw.toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+
+  const labels = [];
+  const lucros = [];
+
+  historico.forEach((exp, i) => {
+    let totalVendas = 0;
+    let totalCompras = 0;
+
+    exp.vendas.forEach(v => totalVendas += v.quantidade * v.preco);
+    exp.compras.forEach(c => totalCompras += c.quantidade * c.preco);
+
+    const lucro = totalVendas - totalCompras;
+    labels.push(`Exp ${i + 1}`);
+    lucros.push(lucro);
+
+    const div = document.createElement('div');
+    div.innerHTML = `
+      <h4>Expediente ${i + 1} - ${exp.data}</h4>
+      <p><strong>Total de Vendas:</strong> R$ ${totalVendas.toFixed(2)}</p>
+      <p><strong>Total de Compras:</strong> R$ ${totalCompras.toFixed(2)}</p>
+      <p><strong>Lucro:</strong> <span style="color: ${lucro >= 0 ? 'green' : 'red'};">R$ ${lucro.toFixed(2)}</span></p>
+      <details>
+        <summary>Ver detalhes completos</summary>
+        <pre>${JSON.stringify(exp, null, 2)}</pre>
+      </details>
+    `;
+    div.style.border = '1px solid #ccc';
+    div.style.margin = '10px 0';
+    div.style.padding = '10px';
+    container.appendChild(div);
+  });
+
+  gerarGraficoLucro(labels, lucros);
+;
+
 document.getElementById('finalizar-expediente').addEventListener('click', () => {
   if (vendas.length === 0 && compras.length === 0) {
     alert("Nenhuma venda ou compra registrada para este expediente.");
@@ -303,3 +334,9 @@ document.getElementById('finalizar-expediente').addEventListener('click', () => 
 atualizarTabelaVendas();
 atualizarTabelaCompras();
 atualizarTabelaEstoque();
+
+// Restaurar aba ativa ao carregar a página
+window.addEventListener('DOMContentLoaded', () => {
+  const abaSalva = localStorage.getItem('abaAtiva') || 'vendas';
+  mostrarAba(abaSalva);
+});
