@@ -140,34 +140,35 @@
       }
     });
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/controle-de-vendas/service-worker.js')
-        .then(reg => {
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'installed') {
-                if (navigator.serviceWorker.controller) {
-                  reg.waiting?.postMessage('SKIP_WAITING');
-                }
-              }
-            });
-          });
+   if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/controle-de-vendas/service-worker.js', { scope: '/controle-de-vendas/' })
+    .then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // Mostra aviso de nova versão disponível
+            document.getElementById('update-notification').style.display = 'block';
+          }
         });
-
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          window.location.reload();
-          refreshing = true;
-        }
       });
+    });
+
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      window.location.reload();
+      refreshing = true;
     }
+  });
+}
 
     function mostrarAba(abaId) {
-      document.querySelectorAll('.aba').forEach(div => div.style.display = 'none');
-      document.getElementById(abaId).style.display = 'block';
-    }
+  document.querySelectorAll('.aba').forEach(div => div.style.display = 'none');
+  document.getElementById(abaId).style.display = 'block';
+  localStorage.setItem('abaAtiva', abaId); // <-- salva a aba atual
+}
+
 
     function logout() {
   localStorage.setItem('logado', 'false');
