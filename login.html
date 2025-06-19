@@ -85,6 +85,17 @@
         mensagemCadastro.textContent = '';
       }, 2000);
     });
+
+    // ✅ REGISTRO DO SERVICE WORKER
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/controle-de-vendas/service-worker.js', { scope: '/controle-de-vendas/' })
+        .then(reg => {
+          console.log('Service Worker registrado no login.html:', reg.scope);
+        })
+        .catch(err => {
+          console.warn('Erro ao registrar Service Worker no login.html:', err);
+        });
+    }
   </script>
 </body>
 </html>

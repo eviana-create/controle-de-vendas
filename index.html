@@ -10,10 +10,10 @@
 </head>
 <body>
   <script>
-  if (localStorage.getItem('logado') !== 'true') {
-    window.location.href = 'login.html';
-  }
-</script>
+    if (localStorage.getItem('logado') !== 'true') {
+      window.location.href = 'login.html';
+    }
+  </script>
 
   <div class="container">
     <h1>Sistema de Controle de Vendas - Adega Lounge</h1>
@@ -112,8 +112,8 @@
       <div id="historico-container" style="margin-top: 20px;"></div>
       <canvas id="graficoLucro" style="max-width: 100%; margin-top: 30px;"></canvas>
     </div>
-    <button onclick="logout()" style="background: #f44336; color: white;">Sair</button>
 
+    <button onclick="logout()" style="background: #f44336; color: white;">Sair</button>
 
     <!-- Botão Instalar PWA -->
     <br />
@@ -124,6 +124,7 @@
 
   <script>
     let deferredPrompt;
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -140,45 +141,50 @@
       }
     });
 
-   if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/controle-de-vendas/service-worker.js', { scope: '/controle-de-vendas/' })
-    .then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // Mostra aviso de nova versão disponível
-            document.getElementById('update-notification').style.display = 'block';
-          }
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/controle-de-vendas/service-worker.js', { scope: '/controle-de-vendas/' })
+        .then(reg => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                document.getElementById('update-notification').style.display = 'block';
+              }
+            });
+          });
         });
-      });
-    });
 
-  let refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      window.location.reload();
-      refreshing = true;
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          window.location.reload();
+          refreshing = true;
+        }
+      });
     }
-  });
-}
 
     function mostrarAba(abaId) {
-  document.querySelectorAll('.aba').forEach(div => div.style.display = 'none');
-  document.getElementById(abaId).style.display = 'block';
-  localStorage.setItem('abaAtiva', abaId); // <-- salva a aba atual
-}
+      document.querySelectorAll('.aba').forEach(div => div.style.display = 'none');
+      document.getElementById(abaId).style.display = 'block';
+      localStorage.setItem('abaAtiva', abaId);
+    }
 
+    window.addEventListener('load', () => {
+      const abaAtiva = localStorage.getItem('abaAtiva') || 'vendas';
+      mostrarAba(abaAtiva);
+    });
 
     function logout() {
-  localStorage.setItem('logado', 'false');
-  window.location.href = 'login.html';
-}
-
+      localStorage.setItem('logado', 'false');
+      window.location.href = 'login.html';
+    }
   </script>
 
   <div id="update-notification" style="display: none; background: #ffcc00; color: black; padding: 10px; text-align: center;">
-    Nova versão disponível. <button onclick="location.reload()">Atualizar agora</button>
+    Nova versão disponível.
+    <button onclick="navigator.serviceWorker.getRegistration().then(reg => reg.waiting?.postMessage('SKIP_WAITING'))">
+      Atualizar agora
+    </button>
   </div>
 </body>
 </html>
