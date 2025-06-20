@@ -25,6 +25,7 @@
       <button onclick="mostrarAba('compras')">Compras</button>
       <button onclick="mostrarAba('estoque')">Estoque</button>
       <button onclick="mostrarAba('historico')">Histórico</button>
+<button onclick="mostrarAba('admin')" id="btn-admin" style="display: none;">Administração</button>
     </div>
 
     <!-- Aba Vendas -->
@@ -114,7 +115,16 @@
       <canvas id="graficoLucro" style="max-width: 100%; margin-top: 30px;"></canvas>
     </div>
 
-    <button onclick="logout()" style="background: #f44336; color: white;">Sair</button>
+    <!-- Aba Administração -->
+<div id="admin" class="aba" style="display: none;">
+  <h2>Painel do Administrador</h2>
+  <p><strong>Usuário atual:</strong> <span id="usuario-logado"></span></p>
+  <p><strong>Tipo:</strong> <span id="tipo-usuario"></span></p>
+  <button onclick="redefinirSenha()">🔐 Redefinir Senha</button>
+  <button onclick="limparDados()" style="background: #f44336; color: white;">🗑️ Limpar Todos os Dados</button>
+</div>
+
+<button onclick="logout()" style="background: #f44336; color: white;">Sair</button>
 
     <!-- Botão Instalar PWA -->
     <br />
@@ -187,5 +197,47 @@
       Atualizar agora
     </button>
   </div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    if (localStorage.getItem('logado') !== 'true') {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    const tipoUsuario = localStorage.getItem('tipoUsuario');
+    const usuario = localStorage.getItem('usuario') || '---';
+
+    if (tipoUsuario !== 'admin') {
+      const historico = document.getElementById('historico');
+      const finalizar = document.getElementById('finalizar-expediente');
+      if (historico) historico.style.display = 'none';
+      if (finalizar) finalizar.style.display = 'none';
+    } else {
+      const btnAdmin = document.getElementById('btn-admin');
+      if (btnAdmin) btnAdmin.style.display = 'inline-block';
+      const abaAdmin = document.getElementById('admin');
+      if (abaAdmin) {
+        document.getElementById('usuario-logado').textContent = usuario;
+        document.getElementById('tipo-usuario').textContent = tipoUsuario;
+      }
+    }
+  });
+
+  function redefinirSenha() {
+    const novaSenha = prompt("Digite a nova senha:");
+    if (novaSenha) {
+      localStorage.setItem('senha', novaSenha);
+      alert("Senha redefinida com sucesso!");
+    }
+  }
+
+  function limparDados() {
+    if (confirm("Tem certeza que deseja limpar todos os dados do sistema?")) {
+      localStorage.clear();
+      alert("Dados apagados. Você será redirecionado para o login.");
+      window.location.href = 'login.html';
+    }
+  }
+</script>
 </body>
 </html>
