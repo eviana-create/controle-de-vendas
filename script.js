@@ -1,15 +1,16 @@
-// script.js
 let vendas = JSON.parse(localStorage.getItem('vendas')) || [];
-let compras = JSON.parse(localStorage.getItem('compras')) || [];
+let produtos = JSON.parse(localStorage.getItem('produtos')) || [];
 let historico = JSON.parse(localStorage.getItem('historicoExpedientes')) || [];
 let totalGeral = 0;
 
+// ========== FUNÇÃO SALVAR ==========
 function salvarDados() {
   localStorage.setItem('vendas', JSON.stringify(vendas));
-  localStorage.setItem('compras', JSON.stringify(compras));
+  localStorage.setItem('produtos', JSON.stringify(produtos));
   localStorage.setItem('historicoExpedientes', JSON.stringify(historico));
 }
 
+// ========== VENDAS ==========
 function atualizarTabelaVendas() {
   const tbody = document.querySelector('#tabela-vendas tbody');
   tbody.innerHTML = '';
@@ -26,7 +27,9 @@ function atualizarTabelaVendas() {
       <td>R$ ${venda.preco.toFixed(2)}</td>
       <td>R$ ${total.toFixed(2)}</td>
       <td>${venda.dataVenda}</td>
-      <td><button onclick="removerVenda(${index})">Remover</button></td>
+      <td>
+        <button onclick="removerVenda(${index})" style="background: red; color: white;">Excluir</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -36,16 +39,19 @@ function atualizarTabelaVendas() {
 }
 
 function removerVenda(index) {
-  vendas.splice(index, 1);
-  salvarDados();
-  atualizarTabelaVendas();
-  atualizarTabelaEstoque();
+  if (confirm('Deseja realmente excluir esta venda?')) {
+    vendas.splice(index, 1);
+    salvarDados();
+    atualizarTabelaVendas();
+    atualizarTabelaEstoque();
+    atualizarTabelaProdutos();
+  }
 }
 
 document.getElementById('form-venda').addEventListener('submit', function (e) {
   e.preventDefault();
 
-  const produto = document.getElementById('produto').value;
+  const produto = document.getElementById('produto').value.trim();
   const quantidade = parseInt(document.getElementById('quantidade').value);
   const preco = parseFloat(document.getElementById('preco').value);
   const dataVenda = new Date().toLocaleString();
@@ -65,69 +71,95 @@ document.getElementById('form-venda').addEventListener('submit', function (e) {
   salvarDados();
   atualizarTabelaVendas();
   atualizarTabelaEstoque();
+  atualizarTabelaProdutos();
 
   this.reset();
 });
 
-function atualizarTabelaCompras() {
-  const tbody = document.querySelector('#tabela-compras tbody');
+// ========== PRODUTOS ==========
+function atualizarTabelaProdutos() {
+  const tbody = document.querySelector('#tabela-produtos tbody');
   tbody.innerHTML = '';
 
-  compras.forEach(compra => {
-    const total = compra.quantidade * compra.preco;
+  const estoque = calcularEstoque();
+
+  produtos.forEach((produto, index) => {
+    const quantidadeAtual = estoque[produto.nome]?.quantidade ?? 0;
+    const total = quantidadeAtual * produto.preco;
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${compra.produto}</td>
-      <td>${compra.quantidade}</td>
-      <td>R$ ${compra.preco.toFixed(2)}</td>
+      <td>${produto.nome}</td>
+      <td>${quantidadeAtual}</td>
+      <td>R$ ${produto.preco.toFixed(2)}</td>
       <td>R$ ${total.toFixed(2)}</td>
-      <td>${compra.dataCompra}</td>
+      <td>${produto.dataCadastro}</td>
+      <td>
+        <button onclick="excluirProduto(${index})" style="background: red; color: white;">Excluir</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
-
-  atualizarLucro();
 }
 
-document.getElementById('form-compra').addEventListener('submit', function (e) {
+function excluirProduto(index) {
+  const confirma = confirm(`Tem certeza que deseja excluir o produto "${produtos[index].nome}"?`);
+  if (confirma) {
+    produtos.splice(index, 1);
+    salvarDados();
+    atualizarTabelaProdutos();
+    atualizarTabelaEstoque();
+  }
+}
+
+document.getElementById('form-produto').addEventListener('submit', function (e) {
   e.preventDefault();
 
-  const produto = document.getElementById('produto-compra').value;
-  const quantidade = parseInt(document.getElementById('quantidade-compra').value);
-  const preco = parseFloat(document.getElementById('preco-compra').value);
-  const dataCompra = new Date().toLocaleString();
+  const nome = document.getElementById('nome-produto').value.trim();
+  const quantidade = parseInt(document.getElementById('quantidade-produto').value);
+  const preco = parseFloat(document.getElementById('preco-produto').value);
+  const dataCadastro = new Date().toLocaleString();
 
-  if (!produto || quantidade <= 0 || preco <= 0) {
-    alert('Preencha corretamente os dados da compra.');
+  if (!nome || quantidade < 0 || preco <= 0) {
+    alert('Preencha corretamente os dados do produto.');
     return;
   }
 
-  compras.push({ produto, quantidade, preco, dataCompra });
+  const existente = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase());
+  if (existente) {
+    existente.quantidade += quantidade;
+    existente.preco = preco;
+    existente.dataCadastro = dataCadastro;
+  } else {
+    produtos.push({ nome, quantidade, preco, dataCadastro });
+  }
+
   salvarDados();
-  atualizarTabelaCompras();
+  atualizarTabelaProdutos();
   atualizarTabelaEstoque();
 
   this.reset();
-  alert('Compra registrada com sucesso!');
+  alert('Produto cadastrado ou atualizado com sucesso!');
 });
 
+// ========== ESTOQUE ==========
 function calcularEstoque() {
   const estoque = {};
 
-  compras.forEach(compra => {
-    if (!estoque[compra.produto]) {
-      estoque[compra.produto] = { quantidade: 0, totalCompra: 0 };
-    }
-    estoque[compra.produto].quantidade += compra.quantidade;
-    estoque[compra.produto].totalCompra += compra.quantidade * compra.preco;
+  produtos.forEach(produto => {
+    estoque[produto.nome] = {
+      quantidade: produto.quantidade,
+      preco: produto.preco
+    };
   });
 
   vendas.forEach(venda => {
-    if (!estoque[venda.produto]) {
-      estoque[venda.produto] = { quantidade: 0, totalCompra: 0 };
+    if (estoque[venda.produto]) {
+      estoque[venda.produto].quantidade -= venda.quantidade;
+      if (estoque[venda.produto].quantidade < 0) {
+        estoque[venda.produto].quantidade = 0;
+      }
     }
-    estoque[venda.produto].quantidade -= venda.quantidade;
   });
 
   return estoque;
@@ -138,61 +170,53 @@ function atualizarTabelaEstoque() {
   tbody.innerHTML = '';
   const estoque = calcularEstoque();
 
-  for (let produto in estoque) {
-    const item = estoque[produto];
-    const precoMedio = item.totalCompra / (item.quantidade + (vendas.filter(v => v.produto === produto).reduce((s, v) => s + v.quantidade, 0)) || 1);
+  produtos.forEach(produto => {
+    const item = estoque[produto.nome] || { quantidade: 0, preco: produto.preco };
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td>${produto}</td>
+      <td>${produto.nome}</td>
       <td>${item.quantidade}</td>
-      <td>R$ ${precoMedio.toFixed(2)}</td>
+      <td>R$ ${item.preco.toFixed(2)}</td>
     `;
     tbody.appendChild(tr);
-  }
+  });
 }
 
+// ========== LUCRO ==========
 function atualizarLucro() {
-  let totalCompras = 0;
+  let totalCusto = 0;
 
-  compras.forEach(compra => {
-    totalCompras += compra.quantidade * compra.preco;
+  produtos.forEach(produto => {
+    totalCusto += produto.quantidade * produto.preco;
   });
 
-  const lucro = totalGeral - totalCompras;
+  const lucro = totalGeral - totalCusto;
   document.getElementById('lucro-total').textContent = lucro.toFixed(2);
 }
 
-// ========== GRÁFICO DE LUCRO ==========
-let chartLucro;
+// ========== HISTÓRICO ==========
+document.getElementById('finalizar-expediente').addEventListener('click', () => {
+  if (vendas.length === 0 && produtos.length === 0) {
+    alert("Nenhuma venda ou produto registrado para este expediente.");
+    return;
+  }
 
-function gerarGraficoLucro(labels, lucros) {
-  const ctx = document.getElementById('graficoLucro').getContext('2d');
-
-  if (chartLucro) chartLucro.destroy();
-
-  chartLucro = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Lucro por Expediente',
-        data: lucros,
-        backgroundColor: lucros.map(v => v >= 0 ? 'rgba(0, 200, 83, 0.6)' : 'rgba(255, 82, 82, 0.6)'),
-        borderColor: lucros.map(v => v >= 0 ? 'rgba(0, 150, 0, 1)' : 'rgba(200, 0, 0, 1)'),
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
+  historico.push({
+    data: new Date().toLocaleString(),
+    vendas: [...vendas],
+    produtos: [...produtos]
   });
-}
+
+  vendas = [];
+  produtos = [];
+  salvarDados();
+  atualizarTabelaVendas();
+  atualizarTabelaProdutos();
+  atualizarTabelaEstoque();
+
+  alert("Expediente finalizado com sucesso!");
+});
 
 document.getElementById('ver-historico').addEventListener('click', () => {
   const container = document.getElementById('historico-container');
@@ -203,25 +227,16 @@ document.getElementById('ver-historico').addEventListener('click', () => {
     return;
   }
 
-  const labels = [];
-  const lucros = [];
-
   historico.forEach((exp, i) => {
-    let totalVendas = 0;
-    let totalCompras = 0;
-
-    exp.vendas.forEach(v => totalVendas += v.quantidade * v.preco);
-    exp.compras.forEach(c => totalCompras += c.quantidade * c.preco);
-
-    const lucro = totalVendas - totalCompras;
-    labels.push(`Exp ${i + 1}`);
-    lucros.push(lucro);
+    const totalVendas = exp.vendas.reduce((s, v) => s + v.quantidade * v.preco, 0);
+    const totalProdutos = exp.produtos.reduce((s, p) => s + p.quantidade * p.preco, 0);
+    const lucro = totalVendas - totalProdutos;
 
     const div = document.createElement('div');
     div.innerHTML = `
       <h4>Expediente ${i + 1} - ${exp.data}</h4>
       <p><strong>Total de Vendas:</strong> R$ ${totalVendas.toFixed(2)}</p>
-      <p><strong>Total de Compras:</strong> R$ ${totalCompras.toFixed(2)}</p>
+      <p><strong>Total de Produtos:</strong> R$ ${totalProdutos.toFixed(2)}</p>
       <p><strong>Lucro:</strong> <span style="color: ${lucro >= 0 ? 'green' : 'red'};">R$ ${lucro.toFixed(2)}</span></p>
       <details>
         <summary>Ver detalhes completos</summary>
@@ -233,109 +248,13 @@ document.getElementById('ver-historico').addEventListener('click', () => {
     div.style.padding = '10px';
     container.appendChild(div);
   });
-
-  gerarGraficoLucro(labels, lucros);
 });
 
-  
-  
-function gerarGraficoLucro(labels, lucros) {
-  const ctx = document.getElementById('graficoLucro').getContext('2d');
-
-  if (window.graficoLucro) window.graficoLucro.destroy();
-
-  window.graficoLucro = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Lucro por Expediente',
-        data: lucros,
-        backgroundColor: lucros.map(v => v >= 0 ? 'rgba(0, 200, 83, 0.6)' : 'rgba(255, 82, 82, 0.6)'),
-        borderColor: lucros.map(v => v >= 0 ? 'rgba(0, 150, 0, 1)' : 'rgba(200, 0, 0, 1)'),
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context => `Lucro: R$ ${context.raw.toFixed(2)}`
-          }
-        }
-      },
-      scales: {
-        y: { beginAtZero: true }
-      }
-    }
-  });
-}
-
-
-  const labels = [];
-  const lucros = [];
-
-  historico.forEach((exp, i) => {
-    let totalVendas = 0;
-    let totalCompras = 0;
-
-    exp.vendas.forEach(v => totalVendas += v.quantidade * v.preco);
-    exp.compras.forEach(c => totalCompras += c.quantidade * c.preco);
-
-    const lucro = totalVendas - totalCompras;
-    labels.push(`Exp ${i + 1}`);
-    lucros.push(lucro);
-
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <h4>Expediente ${i + 1} - ${exp.data}</h4>
-      <p><strong>Total de Vendas:</strong> R$ ${totalVendas.toFixed(2)}</p>
-      <p><strong>Total de Compras:</strong> R$ ${totalCompras.toFixed(2)}</p>
-      <p><strong>Lucro:</strong> <span style="color: ${lucro >= 0 ? 'green' : 'red'};">R$ ${lucro.toFixed(2)}</span></p>
-      <details>
-        <summary>Ver detalhes completos</summary>
-        <pre>${JSON.stringify(exp, null, 2)}</pre>
-      </details>
-    `;
-    div.style.border = '1px solid #ccc';
-    div.style.margin = '10px 0';
-    div.style.padding = '10px';
-    container.appendChild(div);
-  });
-
-  gerarGraficoLucro(labels, lucros);
-;
-
-document.getElementById('finalizar-expediente').addEventListener('click', () => {
-  if (vendas.length === 0 && compras.length === 0) {
-    alert("Nenhuma venda ou compra registrada para este expediente.");
-    return;
-  }
-
-  historico.push({
-    data: new Date().toLocaleString(),
-    vendas: [...vendas],
-    compras: [...compras]
-  });
-
-  vendas = [];
-  compras = [];
-  salvarDados();
-  atualizarTabelaVendas();
-  atualizarTabelaCompras();
-  atualizarTabelaEstoque();
-
-  alert("Expediente finalizado com sucesso!");
-});
-
-// Inicialização
+// ========== INICIALIZAÇÃO ==========
 atualizarTabelaVendas();
-atualizarTabelaCompras();
+atualizarTabelaProdutos();
 atualizarTabelaEstoque();
 
-// Restaurar aba ativa ao carregar a página
 window.addEventListener('DOMContentLoaded', () => {
   const abaSalva = localStorage.getItem('abaAtiva') || 'vendas';
   mostrarAba(abaSalva);

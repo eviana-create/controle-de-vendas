@@ -22,7 +22,7 @@
     <!-- Abas -->
     <div class="tabs">
       <button onclick="mostrarAba('vendas')">Vendas</button>
-      <button onclick="mostrarAba('compras')">Compras</button>
+      <button onclick="mostrarAba('produtos')">Produtos</button>
       <button onclick="mostrarAba('estoque')">Estoque</button>
       <button onclick="mostrarAba('historico')">Histórico</button>
 <button onclick="mostrarAba('admin')" id="btn-admin" style="display: none;">Administração</button>
@@ -63,34 +63,34 @@
       </div>
     </div>
 
-    <!-- Aba Compras -->
-    <div id="compras" class="aba" style="display: none;">
-      <h2>Registrar Compra</h2>
-      <form id="form-compra">
-        <input type="text" id="produto-compra" placeholder="Produto Comprado" required />
-        <input type="number" id="quantidade-compra" placeholder="Quantidade Comprada" required />
-        <input type="number" id="preco-compra" placeholder="Preço Unitário de Compra (R$)" required step="0.01" />
-        <button type="submit">Registrar Compra</button>
-      </form>
+    <!-- Aba Produtos -->
+    <div id="produtos" class="aba" style="display: none;">
+  <h2>Cadastro de Produtos</h2>
+  <form id="form-produto">
+    <input type="text" id="nome-produto" placeholder="Nome do Produto" required />
+    <input type="number" id="quantidade-produto" placeholder="Quantidade Inicial" required />
+    <input type="number" id="preco-produto" placeholder="Preço de Compra (R$)" required step="0.01" />
+    <button type="submit">Cadastrar Produto</button>
+  </form>
 
-      <h3>Compras Registradas</h3>
-      <div class="tabela-responsiva">
-        <table id="tabela-compras">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Quantidade</th>
-              <th>Preço Unitário</th>
-              <th>Total</th>
-              <th>Data</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
+  <h3>Produtos Cadastrados</h3>
+  <div class="tabela-responsiva">
+    <table id="tabela-produtos">
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Quantidade</th>
+          <th>Preço Unitário</th>
+          <th>Total</th>
+          <th>Data de Cadastro</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
 
-    <!-- Aba Estoque -->
+<!-- Aba Estoque -->
     <div id="estoque" class="aba" style="display: none;">
       <h2>Estoque Atual</h2>
       <div class="tabela-responsiva">

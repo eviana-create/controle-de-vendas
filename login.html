@@ -63,7 +63,7 @@
         const usuario = document.getElementById('usuario').value;
         const senha = document.getElementById('senha').value;
         const salvo = localStorage.getItem('usuario');
-const salvaSenha = localStorage.getItem('senha');
+        const salvaSenha = localStorage.getItem('senha');
 
         if (usuario === salvo && senha === salvaSenha) {
           localStorage.setItem('logado', 'true');
