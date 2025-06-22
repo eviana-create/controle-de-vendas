@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adega-v1.2';
+const CACHE_NAME = 'adega-v1.3';
 const urlsToCache = [
   '/controle-de-vendas/',
   '/controle-de-vendas/index.html',
