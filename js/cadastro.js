@@ -64,12 +64,13 @@ form.addEventListener('submit', async (e) => {
       criadoEm: new Date()
     });
 
-    msgSucesso.textContent = 'Usuário cadastrado com sucesso! Você será redirecionado ao login.';
+    msgSucesso.textContent = 'Funcionário cadastrado com sucesso! Voltando ao painel.';
     msgSucesso.style.display = 'block';
 
     setTimeout(() => {
-      window.location.href = 'login.html';
+      window.location.href = 'admin.html'; // ou o caminho correto do painel admin
     }, 3000);
+
 
   } catch (error) {
     msgErro.textContent = error.message;
