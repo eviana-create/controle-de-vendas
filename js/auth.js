@@ -1,29 +1,7 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, 
-  signInWithEmailAndPassword,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-import { 
-  getFirestore, 
-  doc, 
-  getDoc 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-// 🔗 Configuração Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
-  authDomain: "adega-lounge.firebaseapp.com",
-  projectId: "adega-lounge",
-  storageBucket: "adega-lounge.firebasestorage.app",
-  messagingSenderId: "729628267147",
-  appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// ✅ auth.js
+import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { auth, db } from "../firebase/firebaseConfig.js";
 
 // 🔐 Função de login
 export async function login(email, senha) {
@@ -35,19 +13,19 @@ export async function login(email, senha) {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-      const data = docSnap.data();
-      const tipo = data.tipo;
+      const tipo = docSnap.data().tipo;
       return { success: true, tipo };
     } else {
       return { success: false, error: "Usuário sem perfil definido." };
     }
+
   } catch (error) {
-    console.error(error);
+    console.error("Erro no login:", error);
     return { success: false, error: "Email ou senha inválidos." };
   }
 }
 
-// ✅ 🔐 Função de logout
+// 🔓 Função de logout
 export async function logout() {
   try {
     await signOut(auth);
