@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cadastro - Adega Lounge</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h2>Cadastro de Usuário - Adega Lounge</h2>
+    <form id="form-cadastro">
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="password" id="senha" placeholder="Senha (min 6 caracteres)" required minlength="6" />
+      <select id="tipo" required>
+        <option value="" disabled selected>Tipo de Usuário</option>
+        <option value="funcionario">Funcionário</option>
+        <option value="admin">Administrador</option>
+      </select>
+      <input type="text" id="codigo" placeholder="Código de autorização" required />
+      <button type="submit">Cadastrar</button>
+      <p id="msg-erro" style="color: red; display: none;"></p>
+      <p id="msg-sucesso" style="color: green; display: none;"></p>
+    </form>
+    <p><a href="login.html">Já tem conta? Faça login</a></p>
+  </div>
+
+  <!-- Proteção de acesso -->
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const auth = getAuth();
+    const db = getFirestore();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const docRef = doc(db, "usuarios", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists() || docSnap.data().tipo !== "admin") {
+        alert("Acesso permitido apenas para administradores.");
+        window.location.href = "funcionario.html";
+      }
+    });
+  </script>
+
+  <!-- Script de cadastro -->
+  <script type="module" src="../js/cadastro.js"></script>
+</body>
+</html>
