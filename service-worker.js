@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adega-v1.3';
+const CACHE_NAME = 'adega-cache-v1.4';
 const urlsToCache = [
   '/controle-de-vendas/',
   '/controle-de-vendas/index.html',
@@ -7,24 +7,45 @@ const urlsToCache = [
   '/controle-de-vendas/manifest.json'
 ];
 
+// Instala e armazena arquivos no cache
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
   );
-  self.skipWaiting();
+  self.skipWaiting(); // força ativação imediata
 });
 
+// Remove caches antigos
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(key => key !== CACHE_NAME && caches.delete(key)))
+      Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      )
     )
   );
   self.clients.claim();
 });
 
+// Busca atualizada da rede com fallback para o cache
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(res => res || fetch(event.request))
+    fetch(event.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, clone);
+        });
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
   );
 });
