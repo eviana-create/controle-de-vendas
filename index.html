@@ -18,5 +18,44 @@
   </div>
 
   <script type="module" src="/controle-de-vendas/js/login.js"></script>
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/controle-de-vendas/sw.js').then(reg => {
+      reg.onupdatefound = () => {
+        const newWorker = reg.installing;
+        newWorker.onstatechange = () => {
+          if (newWorker.state === 'installed') {
+            if (navigator.serviceWorker.controller) {
+              // Nova versão disponível!
+              const alert = document.createElement('div');
+              alert.style.position = 'fixed';
+              alert.style.bottom = '0';
+              alert.style.width = '100%';
+              alert.style.backgroundColor = '#ffcc00';
+              alert.style.color = '#000';
+              alert.style.padding = '10px';
+              alert.style.textAlign = 'center';
+              alert.innerHTML = `
+                Nova versão disponível! 
+                <button style="margin-left:10px;padding:5px 10px;" onclick="updateApp()">Atualizar</button>
+              `;
+              document.body.appendChild(alert);
+            }
+          }
+        };
+      };
+    });
+  }
+
+  function updateApp() {
+    navigator.serviceWorker.getRegistration().then(reg => {
+      if (reg.waiting) {
+        reg.waiting.postMessage('skipWaiting');
+        location.reload();
+      }
+    });
+  }
+</script>
+
 </body>
 </html>
