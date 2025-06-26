@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Login - Adega Lounge</title>
   <link rel="stylesheet" href="/controle-de-vendas/css/style.css" />
+  <style>
+  body {
+    display: none; /* Esconde até autenticar */
+  }
+</style>
+
 </head>
 <body>
   <div class="container">
@@ -17,7 +23,8 @@
     </form>
   </div>
 
-  <script type="module" src="/controle-de-vendas/js/login.js"></script>
+  <script type="module" src="./js/login.js"></script>
+
   <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/controle-de-vendas/sw.js').then(reg => {
@@ -56,6 +63,8 @@
     });
   }
 </script>
+<script type="module" src="./js/auth-verificacao-admin.js"></script>
+
 
 </body>
 </html>

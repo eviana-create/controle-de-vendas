@@ -21,7 +21,7 @@ const db = getFirestore(app);
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = "../login.html";
+    window.location.href = "login.html";
     return;
   }
 
@@ -31,7 +31,7 @@ onAuthStateChanged(auth, async (user) => {
   if (!docSnap.exists()) {
     alert("Usuário sem perfil definido.");
     await signOut(auth);
-    window.location.href = "../login.html";
+    window.location.href = "login.html";
     return;
   }
 
@@ -40,7 +40,7 @@ onAuthStateChanged(auth, async (user) => {
   if (tipoUsuario !== "admin") {
     alert("Acesso restrito a administradores.");
     await signOut(auth);
-    window.location.href = "../login.html";
+    window.location.href = "login.html";
     return;
   }
 });

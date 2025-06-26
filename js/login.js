@@ -29,7 +29,7 @@ form.addEventListener("submit", async (e) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, senha);
     const user = userCredential.user;
 
-    // 🔍 Busca tipo do usuário no Firestore
+    // 🔍 Verifica tipo do usuário no Firestore
     const docRef = doc(db, "usuarios", user.uid);
     const docSnap = await getDoc(docRef);
 
@@ -41,7 +41,7 @@ form.addEventListener("submit", async (e) => {
 
     const tipo = docSnap.data().tipo;
 
-    // Redireciona baseado no tipo
+    // 🚀 Redireciona conforme o tipo
     if (tipo === "admin") {
       window.location.href = "admin.html";
     } else if (tipo === "funcionario") {
@@ -57,19 +57,3 @@ form.addEventListener("submit", async (e) => {
     msgErro.style.display = "block";
   }
 });
-
-const resultado = await login(email, senha);
-
-if (resultado.success) {
-  if (resultado.tipo === 'admin') {
-    window.location.href = 'admin.html';
-  } else if (resultado.tipo === 'funcionario') {
-    window.location.href = 'funcionario.html';
-  } else {
-    alert("Tipo de usuário desconhecido.");
-  }
-} else {
-  msgErro.textContent = resultado.error;
-  msgErro.style.display = 'block';
-}
-
