@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Histórico - Adega Lounge</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Histórico de Expedientes</h1>
+
+    <nav>
+      <a href="estoque.html">Estoque</a>
+      <a href="vendas.html">Vendas</a>
+      <a href="admin.html">Administração</a>
+      <a href="#" id="logout-btn">Sair</a>
+    </nav>
+
+    <div id="area-admin">
+      <button onclick="finalizarExpediente()">Finalizar Expediente</button>
+      <button onclick="verHistorico()">Ver Histórico</button>
+      <div id="historico-container" style="margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <script type="module" src="../js/historico.js"></script>
+  <script type="module" src="../js/logout.js"></script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Vendas - Adega Lounge</title>
+  <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Controle de Vendas - Adega Lounge</h1>
+
+    <nav>
+      <a href="estoque.html">Estoque</a>
+      <a href="historico.html" id="link-historico">Histórico</a>
+      <a href="admin.html" id="link-admin">Administração</a>
+      <a href="login.html" id="logout-btn">Sair</a>
+    </nav>
+
+    <h2>Registrar Venda</h2>
+    <form id="form-venda">
+      <input type="text" id="produto" placeholder="Nome do Produto" required />
+      <input type="number" id="quantidade" placeholder="Quantidade" required />
+      <input type="number" id="preco" placeholder="Preço Unitário (R$)" step="0.01" required />
+      <button type="submit">Adicionar Venda</button>
+    </form>
+
+    <h3>Vendas Realizadas</h3>
+    <div class="tabela-responsiva">
+      <table id="tabela-vendas">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Preço Unitário</th>
+            <th>Total</th>
+            <th>Data</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3>Total de Vendas: R$ <span id="total-vendas">0.00</span></h3>
+  </div>
+
+  <script type="module" src="../js/vendas.js"></script>
+  <script type="module" src="../js/logout.js"></script>
+
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const auth = getAuth();
+    const db = getFirestore();
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
+
+      const docRef = doc(db, "usuarios", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        alert("Usuário sem perfil definido.");
+        await auth.signOut();
+        window.location.href = "login.html";
+        return;
+      }
+
+      const tipoUsuario = docSnap.data().tipo;
+
+      if (tipoUsuario === "funcionario") {
+        // Oculta os links de admin e histórico
+        const navAdmin = document.querySelector('nav a[href="admin.html"]');
+        const navHistorico = document.querySelector('nav a[href="historico.html"]');
+        if (navAdmin) navAdmin.style.display = "none";
+        if (navHistorico) navHistorico.style.display = "none";
+
+        // Exemplo: desabilitar o campo preço para funcionário (se desejar)
+        // document.getElementById("preco").disabled = true;
+      }
+    });
+  </script>
+</body>
+</html>
