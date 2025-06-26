@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Produtos - Adega Lounge</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Produtos</h1>
+    <input type="text" id="nome" placeholder="Nome do Produto" />
+    <input type="number" id="quantidade" placeholder="Quantidade" />
+    <input type="number" id="preco" placeholder="Preço" step="0.01" />
+    <button id="btnAdicionar">Adicionar Produto</button>
+    <ul id="listaProdutos"></ul>
+    <a href="index.html">Voltar ao Menu</a>
+  </div>
+
+  <script type="module">
+    import { db, auth } from './js/app.js';
+    import { collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const nomeInput = document.getElementById('nome');
+    const quantidadeInput = document.getElementById('quantidade');
+    const precoInput = document.getElementById('preco');
+    const btnAdicionar = document.getElementById('btnAdicionar');
+    const listaProdutos = document.getElementById('listaProdutos');
+
+    // Proteção da página
+    onAuthStateChanged(auth, user => {
+      if (!user) {
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Função para listar produtos
+    async function listarProdutos() {
+      listaProdutos.innerHTML = '';
+      const querySnapshot = await getDocs(collection(db, "produtos"));
+      querySnapshot.forEach(docSnap => {
+        const produto = docSnap.data();
+        const li = document.createElement('li');
+        li.textContent = `${produto.nome} - ${produto.quantidade} unidades - R$ ${produto.preco.toFixed(2)}`;
+        
+        // Botão excluir
+        const btnExcluir = document.createElement('button');
+        btnExcluir.textContent = 'Excluir';
+        btnExcluir.style.marginLeft = '10px';
+        btnExcluir.onclick = async () => {
+          await deleteDoc(doc(db, "produtos", docSnap.id));
+          listarProdutos();
+        };
+        
+        li.appendChild(btnExcluir);
+        listaProdutos.appendChild(li);
+      });
+    }
+
+    listarProdutos();
+
+    // Adicionar produto
+    btnAdicionar.addEventListener('click', async () => {
+      const nome = nomeInput.value.trim();
+      const quantidade = parseInt(quantidadeInput.value);
+      const preco = parseFloat(precoInput.value);
+
+      if (!nome || isNaN(quantidade) || isNaN(preco)) {
+        alert('Preencha todos os campos corretamente');
+        return;
+      }
+
+      await addDoc(collection(db, "produtos"), {
+        nome,
+        quantidade,
+        preco
+      });
+
+      nomeInput.value = '';
+      quantidadeInput.value = '';
+      precoInput.value = '';
+      listarProdutos();
+    });
+  </script>
+</body>
+</html>
