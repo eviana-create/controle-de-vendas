@@ -1,38 +1,12 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, 
-  onAuthStateChanged, 
-  signOut 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { 
-  getFirestore, 
-  doc, 
-  getDoc 
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { auth, db } from "../firebase/firebaseConfig.js";
 
-// 🔧 Configuração Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
-  authDomain: "adega-lounge.firebaseapp.com",
-  projectId: "adega-lounge",
-  storageBucket: "adega-lounge.appspot.com",
-  messagingSenderId: "729628267147",
-  appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
-};
+document.body.style.display = "none"; // Oculta o conteúdo até validar o acesso
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// 🔐 Verificação de autenticação e tipo de usuário
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    // Aguarda sincronização do Firebase Auth
-    setTimeout(() => {
-      if (!auth.currentUser) {
-        window.location.href = "login.html";
-      }
-    }, 300);
+    window.location.href = "login.html";
     return;
   }
 
@@ -56,8 +30,7 @@ onAuthStateChanged(auth, async (user) => {
       return;
     }
 
-    // ✅ Acesso permitido: mostra o conteúdo
-    document.body.style.display = "block";
+    document.body.style.display = "block"; // Exibe conteúdo liberado para admins
 
   } catch (error) {
     console.error("Erro ao verificar usuário:", error);
@@ -66,8 +39,13 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// 🔘 Logout
-document.getElementById("logout-btn").addEventListener("click", async () => {
-  await signOut(auth);
-  window.location.href = "login.html";
+// Garante que o botão logout existe antes de tentar escutar o evento
+document.addEventListener("DOMContentLoaded", () => {
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      await signOut(auth);
+      window.location.href = "login.html";
+    });
+  }
 });
