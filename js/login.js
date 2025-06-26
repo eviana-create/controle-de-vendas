@@ -57,3 +57,19 @@ form.addEventListener("submit", async (e) => {
     msgErro.style.display = "block";
   }
 });
+
+const resultado = await login(email, senha);
+
+if (resultado.success) {
+  if (resultado.tipo === 'admin') {
+    window.location.href = 'admin.html';
+  } else if (resultado.tipo === 'funcionario') {
+    window.location.href = 'funcionario.html';
+  } else {
+    alert("Tipo de usuário desconhecido.");
+  }
+} else {
+  msgErro.textContent = resultado.error;
+  msgErro.style.display = 'block';
+}
+
