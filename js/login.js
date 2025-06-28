@@ -43,7 +43,7 @@ form.addEventListener("submit", async (e) => {
     localStorage.setItem('usuario', email);
 
     if (tipo === "admin") {
-      window.location.href = "/controle-de-vendas/admin.html";
+      window.location.href = "admin.html";
     } else if (tipo === "funcionario") {
       window.location.href = "/controle-de-vendas/funcionario.html";
     } else {
