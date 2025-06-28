@@ -1,6 +1,6 @@
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { auth, db } from "../firebase/firebaseConfig.js";
+import { auth, db } from "../js/firebaseConfig.js";
 
 document.body.style.display = "none"; // Oculta o conteúdo até validar o acesso
 
