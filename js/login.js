@@ -45,7 +45,7 @@ form.addEventListener("submit", async (e) => {
     if (tipo === "admin") {
       window.location.href = "admin.html";
     } else if (tipo === "funcionario") {
-      window.location.href = "/controle-de-vendas/funcionario.html";
+      window.location.href = "funcionario.html";
     } else {
       msgErro.textContent = "Tipo de usuário inválido.";
       msgErro.style.display = "block";
