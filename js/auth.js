@@ -1,7 +1,7 @@
 // ✅ auth.js
 import { signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { auth, db } from "../js/firebaseConfig.js";
+import { auth, db } from "./firebaseConfig.js";
 
 // 🔐 Função de login
 export async function login(email, senha) {
