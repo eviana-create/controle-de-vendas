@@ -1,8 +1,8 @@
+// Corrigido e adaptado
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔧 Config Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
   authDomain: "adega-lounge.firebaseapp.com",
@@ -29,7 +29,6 @@ form.addEventListener("submit", async (e) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, senha);
     const user = userCredential.user;
 
-    // 🔍 Verifica tipo do usuário no Firestore
     const docRef = doc(db, "usuarios", user.uid);
     const docSnap = await getDoc(docRef);
 
@@ -40,12 +39,13 @@ form.addEventListener("submit", async (e) => {
     }
 
     const tipo = docSnap.data().tipo;
+    localStorage.setItem('tipoUsuario', tipo);
+    localStorage.setItem('usuario', email);
 
-    // 🚀 Redireciona conforme o tipo
     if (tipo === "admin") {
-      window.location.href = "admin.html";
+      window.location.href = "/controle-de-vendas/admin.html";
     } else if (tipo === "funcionario") {
-      window.location.href = "funcionario.html";
+      window.location.href = "/controle-de-vendas/funcionario.html";
     } else {
       msgErro.textContent = "Tipo de usuário inválido.";
       msgErro.style.display = "block";
@@ -57,3 +57,29 @@ form.addEventListener("submit", async (e) => {
     msgErro.style.display = "block";
   }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+  const usuarioLogado = localStorage.getItem('usuario') || 'Usuário';
+  const tipoUsuario = localStorage.getItem('tipoUsuario');
+
+  document.getElementById('usuario-logado').textContent = usuarioLogado;
+
+  if (tipoUsuario === 'admin') {
+    document.getElementById('btn-admin').style.display = 'inline-block';
+  }
+
+  const abaSalva = localStorage.getItem('abaAtiva') || 'vendas';
+  mostrarAba(abaSalva);
+});
+
+function mostrarAba(id) {
+  document.querySelectorAll('.aba').forEach(div => div.style.display = 'none');
+  document.getElementById(id).style.display = 'block';
+  localStorage.setItem('abaAtiva', id);
+}
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "/controle-de-vendas/login.html";
+}
+window.logout = logout; // ← necessário se quiser usar no botão HTML
