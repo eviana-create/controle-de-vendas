@@ -18,7 +18,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
   authDomain: "adega-lounge.firebaseapp.com",
   projectId: "adega-lounge",
-  storageBucket: "adega-lounge.firebasestorage.app",
+  storageBucket: "adega-lounge.appspot.com", // Corrigido .app para .com
   messagingSenderId: "729628267147",
   appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
 };
@@ -47,15 +47,17 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   tipoUsuario = docSnap.data().tipo;
-  console.log("Usuário tipo:", tipoUsuario);
+  //console.log("Usuário tipo:", tipoUsuario);
 
-  // Se for funcionário, esconde links e form
+  // Se for funcionário, esconde links e formulários administrativos
   if (tipoUsuario === "funcionario") {
+    // Esconder links de navegação administrativa
     const navAdmin = document.getElementById('link-admin');
     const navHistorico = document.getElementById('link-historico');
     if (navAdmin) navAdmin.style.display = "none";
     if (navHistorico) navHistorico.style.display = "none";
 
+    // Esconder formulário para adicionar produto
     const form = document.getElementById("form-produto");
     if (form) form.style.display = "none";
   }
@@ -63,7 +65,7 @@ onAuthStateChanged(auth, async (user) => {
   carregarEstoque();
 });
 
-// Adicionar produto (só admin)
+// Controle para adicionar produto: só admin pode
 const form = document.getElementById("form-produto");
 if (form) {
   form.addEventListener("submit", async (e) => {
@@ -119,6 +121,7 @@ async function carregarEstoque() {
       tbody.appendChild(tr);
     });
 
+    // Só ativa os botões excluir para admin
     if (tipoUsuario === "admin") {
       ativarExclusao();
     }
