@@ -1,16 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, 
-  onAuthStateChanged 
+import {
+  getAuth,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  getDoc 
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  deleteDoc,
+  doc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Configuração Firebase
@@ -18,7 +18,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
   authDomain: "adega-lounge.firebaseapp.com",
   projectId: "adega-lounge",
-  storageBucket: "adega-lounge.appspot.com", // Corrigido .app para .com
+  storageBucket: "adega-lounge.appspot.com",
   messagingSenderId: "729628267147",
   appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
 };
@@ -30,42 +30,38 @@ const db = getFirestore(app);
 
 let tipoUsuario = null;
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
+window.addEventListener('DOMContentLoaded', () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
 
-  const docRef = doc(db, "usuarios", user.uid);
-  const docSnap = await getDoc(docRef);
+    const docRef = doc(db, "usuarios", user.uid);
+    const docSnap = await getDoc(docRef);
 
-  if (!docSnap.exists()) {
-    alert("Usuário sem perfil definido.");
-    await auth.signOut();
-    window.location.href = "login.html";
-    return;
-  }
+    if (!docSnap.exists()) {
+      alert("Usuário sem perfil definido.");
+      await auth.signOut();
+      window.location.href = "login.html";
+      return;
+    }
 
-  tipoUsuario = docSnap.data().tipo;
-  //console.log("Usuário tipo:", tipoUsuario);
+    tipoUsuario = docSnap.data().tipo;
 
-  // Se for funcionário, esconde links e formulários administrativos
-  if (tipoUsuario === "funcionario") {
-    // Esconder links de navegação administrativa
-    const navAdmin = document.getElementById('link-admin');
-    const navHistorico = document.getElementById('link-historico');
-    if (navAdmin) navAdmin.style.display = "none";
-    if (navHistorico) navHistorico.style.display = "none";
+    if (tipoUsuario === "funcionario") {
+      document.querySelectorAll('.admin-only').forEach(el => {
+        el.style.display = "none";
+      });
 
-    // Esconder formulário para adicionar produto
-    const form = document.getElementById("form-produto");
-    if (form) form.style.display = "none";
-  }
+      const form = document.getElementById("form-produto");
+      if (form) form.style.display = "none";
+    }
 
-  carregarEstoque();
+    carregarEstoque();
+  });
 });
 
-// Controle para adicionar produto: só admin pode
 const form = document.getElementById("form-produto");
 if (form) {
   form.addEventListener("submit", async (e) => {
@@ -121,7 +117,6 @@ async function carregarEstoque() {
       tbody.appendChild(tr);
     });
 
-    // Só ativa os botões excluir para admin
     if (tipoUsuario === "admin") {
       ativarExclusao();
     }

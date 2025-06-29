@@ -12,9 +12,9 @@
 
     <nav>
       <a href="vendas.html">Vendas</a>
-      <a href="historico.html" id="link-historico">Histórico</a>
-      <a href="admin.html" id="link-admin">Administração</a>
-      <a href="login.html" id="logout-btn">Sair</a>
+      <a href="historico.html" id="link-historico" class="admin-only">Histórico</a>
+      <a href="admin.html" id="link-admin" class="admin-only">Administração</a>
+      <a href="#" id="logout-btn">Sair</a>
     </nav>
 
     <!-- Apenas admin vê -->
@@ -45,6 +45,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script type="module" src="../js/estoque.js"></script>
   <script type="module" src="../js/logout.js"></script>
 
