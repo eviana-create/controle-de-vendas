@@ -26,29 +26,8 @@
     <p><a href="login.html">Já tem conta? Faça login</a></p>
   </div>
 
-  <script type="module">
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    const auth = getAuth();
-    const db = getFirestore();
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "login.html";
-        return;
-      }
-
-      const docRef = doc(db, "usuarios", user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists() || docSnap.data().tipo !== "admin") {
-        alert("Acesso permitido apenas para administradores.");
-        window.location.href = "funcionario.html";
-      }
-    });
-  </script>
-
-  <script type="module" src="../js/cadastro.js"></script>
+  <!-- ✅ Firebase é inicializado dentro de js/firebaseConfig.js -->
+  <!-- ✅ Toda lógica está centralizada em js/cadastro.js -->
+  <script type="module" src="./js/cadastroUsuario.js"></script>
 </body>
 </html>
