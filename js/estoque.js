@@ -23,7 +23,6 @@ const firebaseConfig = {
   appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
 };
 
-// Inicializa o Firebase App
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -60,36 +59,38 @@ window.addEventListener('DOMContentLoaded', () => {
 
     carregarEstoque();
   });
+
+  // Mover listener do form para dentro do DOMContentLoaded
+  const form = document.getElementById("form-produto");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      if (tipoUsuario !== "admin") {
+        alert("Apenas administradores podem cadastrar produtos.");
+        return;
+      }
+
+      const nome = document.getElementById("nome-produto").value.trim();
+      const quantidade = Number(document.getElementById("quantidade-produto").value);
+      const preco = Number(document.getElementById("preco-produto").value);
+
+      if (!nome || quantidade <= 0 || preco <= 0) {
+        alert("Preencha todos os campos corretamente.");
+        return;
+      }
+
+      try {
+        await addDoc(collection(db, "estoque"), { nome, quantidade, preco });
+        form.reset();
+        carregarEstoque();
+      } catch (error) {
+        console.error("Erro ao adicionar produto:", error);
+        alert("Erro ao cadastrar produto: " + error.message);
+      }
+    });
+  }
 });
-
-const form = document.getElementById("form-produto");
-if (form) {
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    if (tipoUsuario !== "admin") {
-      alert("Apenas administradores podem cadastrar produtos.");
-      return;
-    }
-
-    const nome = document.getElementById("nome-produto").value.trim();
-    const quantidade = Number(document.getElementById("quantidade-produto").value);
-    const preco = Number(document.getElementById("preco-produto").value);
-
-    if (!nome || quantidade <= 0 || preco <= 0) {
-      alert("Preencha todos os campos corretamente.");
-      return;
-    }
-
-    try {
-      await addDoc(collection(db, "estoque"), { nome, quantidade, preco });
-      form.reset();
-      carregarEstoque();
-    } catch (error) {
-      console.error("Erro ao adicionar produto:", error);
-    }
-  });
-}
 
 async function carregarEstoque() {
   const tbody = document.querySelector("#tabela-estoque tbody");
@@ -101,7 +102,6 @@ async function carregarEstoque() {
     querySnapshot.forEach((docSnap) => {
       const item = docSnap.data();
       const tr = document.createElement("tr");
-
       const total = item.quantidade * item.preco;
 
       tr.innerHTML = `
