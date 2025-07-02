@@ -25,7 +25,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const form = document.getElementById("form-login");
+const form = document.getElementById("login-form");
 const msgErro = document.getElementById("msg-erro");
 
 form.addEventListener("submit", async (e) => {
