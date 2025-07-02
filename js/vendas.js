@@ -1,189 +1,137 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
-  getAuth, 
-  onAuthStateChanged, 
-  signOut 
+import { auth, db } from './firebaseConfig.js';
+import {
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-import { 
-  getFirestore, 
-  collection, 
-  addDoc, 
-  getDocs, 
-  deleteDoc, 
-  doc, 
-  getDoc,
-  updateDoc
+import {
+  collection, doc, getDoc, getDocs, addDoc,
+  runTransaction, Timestamp, query, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
-  authDomain: "adega-lounge.firebaseapp.com",
-  projectId: "adega-lounge",
-  storageBucket: "adega-lounge.firebasestorage.app",
-  messagingSenderId: "729628267147",
-  appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 let tipoUsuario = null;
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
+const selectProduto = document.getElementById('produto-select');
+const qtdInput      = document.getElementById('quantidade-venda');
+const formVenda     = document.getElementById('form-venda');
+const tbodyVendas   = document.querySelector('#tabela-vendas tbody');
+const totalDiaCell  = document.getElementById('total-dia');
+
+// ---------- Autenticação ----------
+onAuthStateChanged(auth, async user => {
+  if (!user) return location.href = 'login.html';
+
+  const snap = await getDoc(doc(db, 'usuarios', user.uid));
+  tipoUsuario = snap.exists() ? snap.data().tipo : null;
+
+  // Oculta botões de admin p/ funcionário
+  if (tipoUsuario !== 'admin') {
+    document.querySelectorAll('.admin-only').forEach(el => el.remove());
   }
 
-  const docRef = doc(db, "usuarios", user.uid);
-  const docSnap = await getDoc(docRef);
-
-  if (!docSnap.exists()) {
-    alert("Usuário sem perfil definido.");
-    await signOut(auth);
-    window.location.href = "login.html";
-    return;
-  }
-
-  tipoUsuario = docSnap.data().tipo;
-
-  // Oculta links admin/historico se funcionário
-  if (tipoUsuario === "funcionario") {
-    const navAdmin = document.querySelector('nav a[href="admin.html"]');
-    const navHistorico = document.querySelector('nav a[href="historico.html"]');
-    if (navAdmin) navAdmin.style.display = "none";
-    if (navHistorico) navHistorico.style.display = "none";
-  }
-
-  carregarVendas();
+  await carregarProdutos();
+  await listarVendasDia();
 });
 
-const form = document.getElementById("form-venda");
+// ---------- Carregar produtos no <select> ----------
+async function carregarProdutos() {
+  selectProduto.innerHTML = '<option value="">Selecione um produto</option>';
+  const produtosSnap = await getDocs(collection(db, 'estoque'));
 
-form.addEventListener("submit", async (e) => {
+  produtosSnap.forEach(p => {
+    const { nome, preco, quantidade } = p.data();
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = `${nome} — ${quantidade} und · R$ ${preco.toFixed(2)}`;
+    opt.dataset.preco = preco;
+    opt.dataset.nome  = nome;
+    opt.dataset.qtdEstoque = quantidade;
+    selectProduto.appendChild(opt);
+  });
+}
+
+// ---------- Registrar venda ----------
+formVenda.addEventListener('submit', async e => {
   e.preventDefault();
 
-  // Apenas admin ou funcionário podem registrar venda (ajuste aqui se quiser restringir mais)
-  if (!tipoUsuario || (tipoUsuario !== "admin" && tipoUsuario !== "funcionario")) {
-  alert("Permissão negada. Tipo de usuário inválido.");
-  return;
-}
+  const optSel   = selectProduto.selectedOptions[0];
+  const prodId   = selectProduto.value;
+  const prodNome = optSel?.dataset.nome;
+  const precoUni = Number(optSel?.dataset.preco);
+  const qtdEst   = Number(optSel?.dataset.qtdEstoque);
+  const qtdVenda = Number(qtdInput.value);
 
-  const nomeProduto = document.getElementById("produto").value.trim();
-  const quantidade = Number(document.getElementById("quantidade").value);
-  const preco = Number(document.getElementById("preco").value);
-
-  if (!nomeProduto || quantidade <= 0 || preco <= 0) {
-    alert("Preencha os campos corretamente.");
+  if (!prodId || qtdVenda <= 0) {
+    alert('Selecione o produto e informe a quantidade.');
+    return;
+  }
+  if (qtdVenda > qtdEst) {
+    alert('Quantidade em estoque insuficiente.');
     return;
   }
 
   try {
-    // 1. Registrar a venda
-await addDoc(collection(db, "vendas"), {
-  produto: nomeProduto,
-  quantidade,
-  preco,
-  data: new Date()
-});
+    // Transação: grava venda e já reduz estoque
+    await runTransaction(db, async (tx) => {
+      const estoqueRef = doc(db, 'estoque', prodId);
+      const estoqueSnap = await tx.get(estoqueRef);
+      const estoqueAtual = estoqueSnap.data().quantidade;
 
-// 2. Buscar produto no estoque
-const querySnapshot = await getDocs(collection(db, "estoque"));
-let produtoId = null;
-let produtoAtual = null;
-
-querySnapshot.forEach((docSnap) => {
-  const data = docSnap.data();
-  if (data.nome.toLowerCase() === nomeProduto.toLowerCase()) {
-    produtoId = docSnap.id;
-    produtoAtual = data;
-  }
-});
-
-if (produtoId && produtoAtual) {
-  const novaQuantidade = produtoAtual.quantidade - quantidade;
-  if (novaQuantidade < 0) {
-    alert("Estoque insuficiente para essa venda.");
-    return;
-  }
-
-  // 3. Atualizar estoque
-  await addDoc(collection(db, "historico-vendas"), {
-    produto: nomeProduto,
-    quantidade,
-    preco,
-    data: new Date()
-  });
-
-  await updateDoc(doc(db, "estoque", produtoId), {
-    quantidade: novaQuantidade
-  });
-}
-
-form.reset();
-carregarVendas();
-
-
-  } catch (error) {
-    console.error("Erro ao registrar venda:", error);
-  }
-});
-
-async function carregarVendas() {
-  const tbody = document.querySelector("#tabela-vendas tbody");
-  tbody.innerHTML = "";
-
-  try {
-    const querySnapshot = await getDocs(collection(db, "vendas"));
-
-    let totalVendas = 0;
-
-    querySnapshot.forEach(docSnap => {
-      const venda = docSnap.data();
-      const tr = document.createElement("tr");
-
-      const total = venda.quantidade * venda.preco;
-      totalVendas += total;
-
-      const dataFormatada = venda.data.toDate ? venda.data.toDate().toLocaleString("pt-BR") : new Date(venda.data).toLocaleString("pt-BR");
-
-      tr.innerHTML = `
-        <td>${venda.produto}</td>
-        <td>${venda.quantidade}</td>
-        <td>R$ ${venda.preco.toFixed(2)}</td>
-        <td>R$ ${total.toFixed(2)}</td>
-        <td>${dataFormatada}</td>
-        <td>
-          ${tipoUsuario === "admin" ? `<button class="btn-excluir" data-id="${docSnap.id}">🗑️</button>` : "-"}
-        </td>
-      `;
-
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById("total-vendas").textContent = totalVendas.toFixed(2);
-
-    if (tipoUsuario === "admin") ativarExclusao();
-
-  } catch (error) {
-    console.error("Erro ao carregar vendas:", error);
-  }
-}
-
-function ativarExclusao() {
-  document.querySelectorAll(".btn-excluir").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
-      if (confirm("Deseja excluir esta venda?")) {
-        try {
-          await deleteDoc(doc(db, "vendas", id));
-          carregarVendas();
-        } catch (error) {
-          console.error("Erro ao excluir venda:", error);
-        }
+      if (estoqueAtual < qtdVenda) {
+        throw new Error('Estoque insuficiente (concorrência).');
       }
+
+      // grava venda
+      const vendaRef = collection(db, 'vendas');
+      tx.set(doc(vendaRef), {
+        produtoId: prodId,
+        produto: prodNome,
+        quantidade: qtdVenda,
+        precoUnit: precoUni,
+        subtotal: precoUni * qtdVenda,
+        vendedor: auth.currentUser.uid,
+        criadoEm: Timestamp.now()
+      });
+
+      // atualiza estoque
+      tx.update(estoqueRef, { quantidade: estoqueAtual - qtdVenda });
     });
+
+    formVenda.reset();
+    await carregarProdutos();  // atualiza dropdown
+    await listarVendasDia();   // atualiza tabela
+
+  } catch (err) {
+    console.error(err);
+    alert('Falha ao registrar venda: ' + err.message);
+  }
+});
+
+// ---------- Listar vendas do dia ----------
+async function listarVendasDia() {
+  const hoje = new Date();
+  hoje.setHours(0,0,0,0); // 00h00
+
+  const vendasQ = query(
+    collection(db, 'vendas'),
+    where('criadoEm', '>=', Timestamp.fromDate(hoje))
+  );
+
+  const vendasSnap = await getDocs(vendasQ);
+  tbodyVendas.innerHTML = '';
+  let totalDia = 0;
+
+  vendasSnap.forEach(v => {
+    const d = v.data();
+    totalDia += d.subtotal;
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.produto}</td>
+      <td>${d.quantidade}</td>
+      <td>R$ ${d.subtotal.toFixed(2)}</td>
+      <td>${d.criadoEm.toDate().toLocaleString()}</td>
+    `;
+    tbodyVendas.appendChild(tr);
   });
+
+  totalDiaCell.textContent = `R$ ${totalDia.toFixed(2)}`;
 }
