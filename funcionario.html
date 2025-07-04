@@ -14,6 +14,8 @@
     <div class="botoes">
       <button onclick="window.location.href='./estoque.html'">📦 Consultar Estoque</button>
       <button onclick="window.location.href='./vendas.html'">💰 Registrar Vendas</button>
+      <button id="installButton" style="display:none;">📲 Instalar App</button>
+
     </div>
 
     <button id="btn-logout" class="logout">🚪 Sair</button>
@@ -40,6 +42,12 @@
     });
   </script>
 
-  <script type="module" src="./js/login.js"></script>
+  <button id="installButton" style="display: none;">📲 Instalar App</button>
+
+  <!--<script type="module" src="./js/login.js"></script>-->
+  <script type="module" src="./js/logout.js"></script>
+  <script type="module" src="./js/pwa.js"></script>
+
+
 </body>
 </html>
