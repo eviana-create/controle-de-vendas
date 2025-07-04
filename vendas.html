@@ -53,12 +53,10 @@
   <script type="module" src="../js/vendas.js"></script>
   <script type="module" src="../js/logout.js"></script>
 
-  <script type="module">
+<script type="module">
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  const auth = getAuth();
-  const db = getFirestore();
+  import { auth, db } from "./js/firebaseConfig.js"; // 🔁 Garante uso centralizado
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -70,22 +68,22 @@
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
-      alert("Usuário sem perfil definido.");
-      await auth.signOut();
-      window.location.href = "login.html";
+      alert("Perfil de usuário não encontrado.");
       return;
     }
 
-    const tipoUsuario = docSnap.data().tipo;
+    const tipo = docSnap.data().tipo;
 
-    // ⛔️ Oculta links sensíveis se não for admin
-    if (tipoUsuario !== "admin") {
-      document.querySelectorAll('a[href="admin.html"], a[href="historico.html"]').forEach(el => {
-        el.style.display = "none";
-      });
+    if (tipo === "funcionario") {
+      // Oculta botões visíveis apenas para admin
+      const adminLink = document.querySelector('a[href="admin.html"]');
+      const historicoLink = document.querySelector('a[href="historico.html"]');
+      if (adminLink) adminLink.style.display = "none";
+      if (historicoLink) historicoLink.style.display = "none";
     }
   });
 </script>
+
 
 </body>
 </html>
