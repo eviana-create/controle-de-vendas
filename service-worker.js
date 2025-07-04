@@ -1,45 +1,53 @@
-const CACHE_NAME = 'adega-v1.4'; // 🔄 atualize sempre que mudar o app
+const CACHE_NAME = 'adega-v1.7';
 const urlsToCache = [
-  '/controle-de-vendas/',
-  '/controle-de-vendas/index.html',
-  '/controle-de-vendas/css/style.css',
-  '/controle-de-vendas/js/login.js',
-  // adicione os arquivos relevantes
+  './',
+  './index.html',
+  './admin.html',
+  './funcionario.html',
+  './css/style.css',
+  './js/login.js',
+  './js/logout.js',
+  './js/firebaseConfig.js',
+  './js/pwa.js',
 ];
 
-self.addEventListener('install', event => {
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(urlsToCache).catch((err) => {
+        console.error('[SW] Erro ao adicionar arquivos ao cache:', err);
+      })
+    )
   );
   self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then(keys =>
+    caches.keys().then((keys) =>
       Promise.all(
-        keys.map(key => {
+        keys.map((key) => {
           if (key !== CACHE_NAME) {
-            return caches.delete(key); // 🔥 remove caches antigos
+            return caches.delete(key);
           }
         })
       )
     )
   );
-  return self.clients.claim();
+  self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
+self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request).then(res => {
-      return res || fetch(event.request);
+    caches.match(event.request).then((cached) => {
+      return (
+        cached ||
+        fetch(event.request).catch(() => caches.match('./index.html'))
+      );
     })
   );
 });
 
-// 🔔 Comunicação com o app para avisar sobre nova versão
-self.addEventListener('message', event => {
-  if (event.data === 'skipWaiting') {
-    self.skipWaiting(); // força ativação imediata do novo SW
-  }
+self.addEventListener('message', (event) => {
+  if (event.data === 'skipWaiting') self.skipWaiting();
 });
