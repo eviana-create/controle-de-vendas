@@ -1,6 +1,5 @@
 import { auth, db } from "./firebaseConfig.js";
 import {
-  getAuth,
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -9,78 +8,93 @@ import {
   addDoc,
   getDoc,
   getDocs,
-  updateDoc,
-  doc,
   serverTimestamp,
   query,
-  where
+  where,
+  orderBy,
+  updateDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+/* ---------- Variáveis globais ---------- */
 let tipoUsuario = null;
-let produtosMap = new Map();
-
-/* ---------- DOM ---------- */
-const formVenda = document.getElementById("form-venda");
 const produtoSelect = document.getElementById("produto-select");
-const quantidadeInput = document.getElementById("quantidade-venda");
-const tabelaBody = document.querySelector("#tabela-vendas tbody");
-const totalDiaSpan = document.getElementById("total-dia");
+const form = document.getElementById("form-venda");
+const tbody = document.querySelector("#tabela-vendas tbody");
+const totalDiaEl = document.getElementById("total-dia");
+const produtosMap = new Map();
 
-/* ---------- Autenticação e acesso ---------- */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return (window.location.href = "login.html");
+/* ---------- Inicialização ---------- */
+document.addEventListener("DOMContentLoaded", () => {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
 
-  const snap = await getDoc(doc(db, "usuarios", user.uid));
-  tipoUsuario = snap.exists() ? snap.data().tipo : null;
+    // Pega tipo do usuário
+    const snap = await getDoc(doc(db, "usuarios", user.uid));
+    tipoUsuario = snap.exists() ? snap.data().tipo : null;
 
-  if (tipoUsuario !== "admin") {
-    document.querySelectorAll("a[href='admin.html'], a[href='historico.html']").forEach(el => el.style.display = "none");
-  }
+    // Oculta links de admin para funcionário
+    if (tipoUsuario !== "admin") {
+      document.querySelectorAll('a[href="admin.html"], a[href="historico.html"]').forEach(el => {
+        el.style.display = "none";
+      });
+    }
 
-  await carregarProdutos();
-  forcarAtualizacaoSelectAndroid(); // 🔧 força o select renderizar corretamente no Android
-  await carregarVendas();
-});
+    await carregarProdutos();
 
-/* ---------- Carrega produtos no <select> ---------- */
-async function carregarProdutos() {
-  produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
-  produtosMap.clear();
+    // Força atualização do select só no Android (não afeta Windows/iOS)
+    if (/android/i.test(navigator.userAgent)) {
+      forcarAtualizacaoSelectAndroid();
+    }
 
-  const produtos = await getDocs(collection(db, "estoque"));
-
-  produtos.forEach(docSnap => {
-    const produto = docSnap.data();
-    produtosMap.set(docSnap.id, { ...produto, id: docSnap.id });
-
-    const option = document.createElement("option");
-    option.value = docSnap.id;
-    option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
-    produtoSelect.appendChild(option);
+    await carregarVendas();
   });
 
-  // Garantir interatividade do <select> no Android
-  setTimeout(() => {
-    produtoSelect.disabled = false;
-    produtoSelect.focus();
-  }, 100);
-}
+  form.addEventListener("submit", registrarVenda);
+});
 
-/* ---------- Força atualização visual no Android ---------- */
-function forcarAtualizacaoSelectAndroid() {
-  const isAndroid = /android/i.test(navigator.userAgent);
-  if (isAndroid && produtoSelect) {
-    const clone = produtoSelect.cloneNode(true);
-    produtoSelect.parentNode.replaceChild(clone, produtoSelect);
+/* ---------- Funções ---------- */
+
+async function carregarProdutos() {
+  produtoSelect.disabled = true;
+  produtoSelect.innerHTML = `<option>Carregando produtos...</option>`;
+  produtosMap.clear();
+
+  try {
+    const produtosSnapshot = await getDocs(collection(db, "estoque"));
+    produtoSelect.disabled = false;
+    produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
+
+    produtosSnapshot.forEach(docSnap => {
+      const produto = docSnap.data();
+      produtosMap.set(docSnap.id, { ...produto, id: docSnap.id });
+
+      const option = document.createElement("option");
+      option.value = docSnap.id;
+      option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
+      produtoSelect.appendChild(option);
+    });
+
+  } catch (error) {
+    console.error("Erro ao carregar produtos:", error);
+    produtoSelect.innerHTML = `<option value="">Erro ao carregar produtos</option>`;
   }
 }
 
-/* ---------- Registrar venda ---------- */
-formVenda.addEventListener("submit", async (e) => {
-  e.preventDefault();
+function forcarAtualizacaoSelectAndroid() {
+  // Clona e substitui o select para forçar atualização em Android
+  const clone = produtoSelect.cloneNode(true);
+  produtoSelect.parentNode.replaceChild(clone, produtoSelect);
+}
+
+async function registrarVenda(event) {
+  event.preventDefault();
 
   const produtoId = produtoSelect.value;
-  const quantidadeVendida = parseInt(quantidadeInput.value);
+  const quantidadeVendida = parseInt(document.getElementById("quantidade-venda").value);
 
   if (!produtoId || isNaN(quantidadeVendida) || quantidadeVendida <= 0) {
     alert("Preencha corretamente os campos.");
@@ -89,66 +103,43 @@ formVenda.addEventListener("submit", async (e) => {
 
   const produto = produtosMap.get(produtoId);
 
-  if (!produto || produto.quantidade < quantidadeVendida) {
-    alert("Estoque insuficiente.");
+  if (!produto) {
+    alert("Produto não encontrado.");
+    return;
+  }
+
+  if (produto.quantidade < quantidadeVendida) {
+    alert("Quantidade em estoque insuficiente.");
     return;
   }
 
   const subtotal = quantidadeVendida * produto.preco;
 
   try {
+    // Salva venda no Firestore
     await addDoc(collection(db, "vendas"), {
       produto: produto.nome,
-      produtoId: produtoId,
+      produtoId,
       quantidade: quantidadeVendida,
       subtotal,
       criadoEm: serverTimestamp()
     });
 
+    // Atualiza estoque
+    const novoEstoque = produto.quantidade - quantidadeVendida;
     await updateDoc(doc(db, "estoque", produtoId), {
-      quantidade: produto.quantidade - quantidadeVendida
+      quantidade: novoEstoque
     });
 
-    formVenda.reset();
+    form.reset();
     await carregarProdutos();
-    forcarAtualizacaoSelectAndroid();
     await carregarVendas();
 
   } catch (error) {
     console.error("Erro ao registrar venda:", error);
     alert("Erro ao registrar venda.");
   }
-});
-
-/* ---------- Carregar vendas do dia ---------- */
-async function carregarVendas() {
-  tabelaBody.innerHTML = "";
-  totalDiaSpan.textContent = "R$ 0,00";
-
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const vendasSnap = await getDocs(
-    query(collection(db, "vendas"), where("criadoEm", ">=", hoje))
-  );
-
-  let total = 0;
-
-  vendasSnap.forEach((doc) => {
-    const venda = doc.data();
-    const dataVenda = venda.criadoEm?.toDate?.().toLocaleString("pt-BR") || "N/A";
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${venda.produto}</td>
-      <td>${venda.quantidade}</td>
-      <td>R$ ${venda.subtotal.toFixed(2)}</td>
-      <td>${dataVenda}</td>
-    `;
-    tabelaBody.appendChild(tr);
-
-    total += venda.subtotal;
-  });
-
-  totalDiaSpan.textContent = `R$ ${total.toFixed(2)}`;
 }
+
+async function carregarVendas() {
+  tb
