@@ -10,7 +10,8 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  getDoc
+  getDoc,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Configuração Firebase
@@ -28,6 +29,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let tipoUsuario = null;
+let editandoId = null; // ID do produto sendo editado
 
 window.addEventListener('DOMContentLoaded', () => {
   onAuthStateChanged(auth, async (user) => {
@@ -60,14 +62,13 @@ window.addEventListener('DOMContentLoaded', () => {
     carregarEstoque();
   });
 
-  // Mover listener do form para dentro do DOMContentLoaded
   const form = document.getElementById("form-produto");
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       if (tipoUsuario !== "admin") {
-        alert("Apenas administradores podem cadastrar produtos.");
+        alert("Apenas administradores podem cadastrar ou editar produtos.");
         return;
       }
 
@@ -81,12 +82,23 @@ window.addEventListener('DOMContentLoaded', () => {
       }
 
       try {
-        await addDoc(collection(db, "estoque"), { nome, quantidade, preco });
+        if (editandoId) {
+          // Atualizar produto existente
+          const produtoRef = doc(db, "estoque", editandoId);
+          await updateDoc(produtoRef, { nome, quantidade, preco });
+
+          editandoId = null;
+          form.querySelector("button[type=submit]").textContent = "Cadastrar Produto";
+        } else {
+          // Adicionar novo produto
+          await addDoc(collection(db, "estoque"), { nome, quantidade, preco });
+        }
+
         form.reset();
         carregarEstoque();
       } catch (error) {
-        console.error("Erro ao adicionar produto:", error);
-        alert("Erro ao cadastrar produto: " + error.message);
+        console.error("Erro ao salvar produto:", error);
+        alert("Erro ao salvar produto: " + error.message);
       }
     });
   }
@@ -104,28 +116,33 @@ async function carregarEstoque() {
       const tr = document.createElement("tr");
       const total = item.quantidade * item.preco;
 
+      // Botões de Ação: Editar e Excluir (apenas para admin)
+      const botoes = tipoUsuario === "admin" ? `
+        <button class="btn-editar" data-id="${docSnap.id}">✏️</button>
+        <button class="btn-excluir" data-id="${docSnap.id}">🗑️</button>
+      ` : "-";
+
       tr.innerHTML = `
         <td>${item.nome}</td>
         <td>${item.quantidade}</td>
         <td>R$ ${item.preco.toFixed(2)}</td>
         <td>R$ ${total.toFixed(2)}</td>
-        <td>
-          ${tipoUsuario === "admin" ? `<button class="btn-excluir" data-id="${docSnap.id}">🗑️</button>` : "-"}
-        </td>
+        <td>${botoes}</td>
       `;
 
       tbody.appendChild(tr);
     });
 
     if (tipoUsuario === "admin") {
-      ativarExclusao();
+      ativarBotoesAcoes();
     }
   } catch (error) {
     console.error("Erro ao carregar estoque:", error);
   }
 }
 
-function ativarExclusao() {
+function ativarBotoesAcoes() {
+  // Botões Excluir
   document.querySelectorAll(".btn-excluir").forEach(btn => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.id;
@@ -135,7 +152,35 @@ function ativarExclusao() {
           carregarEstoque();
         } catch (error) {
           console.error("Erro ao excluir produto:", error);
+          alert("Erro ao excluir produto.");
         }
+      }
+    });
+  });
+
+  // Botões Editar
+  document.querySelectorAll(".btn-editar").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.id;
+      try {
+        const docSnap = await getDoc(doc(db, "estoque", id));
+        if (!docSnap.exists()) {
+          alert("Produto não encontrado.");
+          return;
+        }
+        const item = docSnap.data();
+
+        // Preencher formulário com dados do produto para editar
+        document.getElementById("nome-produto").value = item.nome;
+        document.getElementById("quantidade-produto").value = item.quantidade;
+        document.getElementById("preco-produto").value = item.preco;
+
+        // Alterar estado para edição
+        editandoId = id;
+        document.querySelector("#form-produto button[type=submit]").textContent = "Salvar Alterações";
+      } catch (error) {
+        console.error("Erro ao carregar produto para editar:", error);
+        alert("Erro ao carregar produto para edição.");
       }
     });
   });
