@@ -17,32 +17,37 @@
       <a href="login.html" id="logout-btn">Sair</a>
     </nav>
 
-    <h2>Registrar Venda</h2>
-    <form id="form-venda">
-      <input type="text" id="produto" placeholder="Nome do Produto" required />
-      <input type="number" id="quantidade" placeholder="Quantidade" required />
-      <input type="number" id="preco" placeholder="Preço Unitário (R$)" step="0.01" required />
-      <button type="submit">Adicionar Venda</button>
-    </form>
+    <!-- ——— vendas.html (somente o formulário) ——— -->
+<h2>Registrar Venda</h2>
+<form id="form-venda">
+  <select id="produto-select" required>
+    <option value="">Selecione o produto</option>
+    <!-- opções são inseridas pelo JS -->
+  </select>
 
-    <h3>Vendas Realizadas</h3>
-    <div class="tabela-responsiva">
-      <table id="tabela-vendas">
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Quantidade</th>
-            <th>Preço Unitário</th>
-            <th>Total</th>
-            <th>Data</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  <input type="number" id="quantidade-venda"
+         placeholder="Quantidade" min="1" required />
 
-    <h3>Total de Vendas: R$ <span id="total-vendas">0.00</span></h3>
+  <button type="submit">Registrar Venda</button>
+</form>
+
+<h3>Vendas Realizadas</h3>
+<div class="tabela-responsiva">
+  <table id="tabela-vendas">
+    <thead>
+      <tr>
+        <th>Produto</th>
+        <th>Quantidade</th>
+        <th>Subtotal (R$)</th>
+        <th>Data</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<h3>Total de Vendas do Dia: <span id="total-dia">R$ 0,00</span></h3>
+
   </div>
 
   <script type="module" src="../js/vendas.js"></script>
