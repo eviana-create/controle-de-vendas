@@ -54,41 +54,38 @@
   <script type="module" src="../js/logout.js"></script>
 
   <script type="module">
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const auth = getAuth();
-    const db = getFirestore();
+  const auth = getAuth();
+  const db = getFirestore();
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "login.html";
-        return;
-      }
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
+      return;
+    }
 
-      const docRef = doc(db, "usuarios", user.uid);
-      const docSnap = await getDoc(docRef);
+    const docRef = doc(db, "usuarios", user.uid);
+    const docSnap = await getDoc(docRef);
 
-      if (!docSnap.exists()) {
-        alert("Usuário sem perfil definido.");
-        await auth.signOut();
-        window.location.href = "login.html";
-        return;
-      }
+    if (!docSnap.exists()) {
+      alert("Usuário sem perfil definido.");
+      await auth.signOut();
+      window.location.href = "login.html";
+      return;
+    }
 
-      const tipoUsuario = docSnap.data().tipo;
+    const tipoUsuario = docSnap.data().tipo;
 
-      if (tipoUsuario === "funcionario") {
-        // Oculta os links de admin e histórico
-        const navAdmin = document.querySelector('nav a[href="admin.html"]');
-        const navHistorico = document.querySelector('nav a[href="historico.html"]');
-        if (navAdmin) navAdmin.style.display = "none";
-        if (navHistorico) navHistorico.style.display = "none";
+    // ⛔️ Oculta links sensíveis se não for admin
+    if (tipoUsuario !== "admin") {
+      document.querySelectorAll('a[href="admin.html"], a[href="historico.html"]').forEach(el => {
+        el.style.display = "none";
+      });
+    }
+  });
+</script>
 
-        // Exemplo: desabilitar o campo preço para funcionário (se desejar)
-        // document.getElementById("preco").disabled = true;
-      }
-    });
-  </script>
 </body>
 </html>
