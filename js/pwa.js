@@ -1,3 +1,4 @@
+// 🔄 Botão de instalação para Android
 let deferredPrompt;
 const installBtn = document.getElementById('installButton');
 
@@ -19,6 +20,7 @@ if (installBtn) {
   });
 }
 
+// 🛠️ Registro do Service Worker com auto-atualização
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker
     .register('service-worker.js')
@@ -45,5 +47,19 @@ if ('serviceWorker' in navigator) {
         }
       });
     })
-    .catch((err) => console.error('Erro ao registrar o Service Worker:', err));
+    .catch((err) =>
+      console.error('Erro ao registrar o Service Worker:', err)
+    );
+}
+
+// 🍎 iOS (Safari) — Alerta único por sessão para instalação
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.matchMedia('(display-mode: standalone)').matches;
+
+if (isIOS) {
+  const jaMostrado = sessionStorage.getItem("ios-install-alert");
+
+  if (!jaMostrado) {
+    alert("Para instalar o app, toque no botão de compartilhar e escolha 'Adicionar à Tela de Início'.");
+    sessionStorage.setItem("ios-install-alert", "true");
+  }
 }
