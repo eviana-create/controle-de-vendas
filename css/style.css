@@ -139,4 +139,43 @@ th {
     max-width: 100%;
   }
 }
+/* Estilo para a tabela do histórico */
+.tabela-dia {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+}
+
+.tabela-dia th,
+.tabela-dia td {
+  border: 1px solid #ccc;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.tabela-dia th {
+  background-color: #007BFF;
+  color: white;
+  font-weight: 600;
+}
+
+.tabela-dia tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.tabela-dia tbody tr:last-child {
+  font-weight: 700;
+  background-color: #e9ecef;
+}
+
+/* Responsivo: deixa a tabela scrollável em telas pequenas */
+@media (max-width: 600px) {
+  .tabela-dia {
+    display: block;
+    overflow-x: auto;
+  }
+}
+
 
