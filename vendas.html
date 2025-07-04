@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Vendas - Adega Lounge</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
@@ -19,17 +19,35 @@
 
     <!-- ——— vendas.html (somente o formulário) ——— -->
 <h2>Registrar Venda</h2>
+
 <form id="form-venda">
-  <select id="produto-select" required>
-    <option value="">Selecione o produto</option>
-    <!-- opções são inseridas pelo JS -->
-  </select>
+  <div id="itens-container">
+    <!-- primeira linha padrão -->
+    <div class="item-linha">
+      <select class="produto-select" required>
+        <option value="">Selecione o produto</option>
+      </select>
 
-  <input type="number" id="quantidade-venda"
-         placeholder="Quantidade" min="1" required />
+      <input
+        type="number"
+        class="quantidade-input"
+        placeholder="Qtd"
+        min="1"
+        required
+      />
 
-  <button type="submit">Registrar Venda</button>
+      <span class="subtotal-label">R$ 0,00</span>
+      <button type="button" class="remover-item-btn">×</button>
+    </div>
+  </div>
+
+  <button type="button" id="add-item-btn">Adicionar item</button>
+
+  <h3>Valor total: <span id="valor-total">R$ 0,00</span></h3>
+
+  <button type="submit">Concluir Venda</button>
 </form>
+
 
 <h3>Vendas Realizadas</h3>
 <div class="tabela-responsiva">
@@ -82,6 +100,19 @@
       if (historicoLink) historicoLink.style.display = "none";
     }
   });
+</script>
+    <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
+  📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
+  <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
+</div>
+
+<script>
+  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  const isInStandalone = window.navigator.standalone;
+
+  if (isIOS && !isInStandalone) {
+    document.getElementById("install-banner").style.display = "block";
+  }
 </script>
 
 

@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Histórico - Adega Lounge</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
@@ -29,5 +29,20 @@
 
   <script type="module" src="../js/historico.js"></script>
   <script type="module" src="../js/logout.js"></script>
+
+  <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
+  📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
+  <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
+</div>
+
+<script>
+  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+  const isInStandalone = window.navigator.standalone;
+
+  if (isIOS && !isInStandalone) {
+    document.getElementById("install-banner").style.display = "block";
+  }
+</script>
+
 </body>
 </html>
