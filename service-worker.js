@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adega-v1.5';
+const CACHE_NAME = 'adega-v1.6;
 const urlsToCache = [
   './',
   './index.html',
