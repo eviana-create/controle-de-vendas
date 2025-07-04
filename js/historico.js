@@ -1,37 +1,30 @@
-import { auth, db } from './firebaseConfig.js';
-import {
-  onAuthStateChanged,
-  signOut
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
-import {
-  collection,
-  addDoc,
-  getDocs,
-  serverTimestamp,
-  query,
-  orderBy
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { auth, db } from "./js/firebaseConfig.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ---------- DOM ---------- */
-const btnFinalizar = document.getElementById('btn-finalizar');
-const btnHistorico = document.getElementById('btn-historico');
-const container = document.getElementById('historico-container');
-
-/* ---------- Controle de acesso ---------- */
 onAuthStateChanged(auth, async (user) => {
-  if (!user) return (window.location.href = 'login.html');
+  if (!user) {
+    window.location.href = "login.html";
+    return;
+  }
 
-  const snap = await getDocs(
-    query(collection(db, 'usuarios'), orderBy('uid'))
-  );
-  const perfil = snap.docs.find((d) => d.id === user.uid)?.data()?.tipo;
+  const docRef = doc(db, "usuarios", user.uid);
+  const docSnap = await getDoc(docRef);
 
-  if (perfil !== 'admin') {
-    alert('Acesso restrito a administradores.');
-    await signOut(auth);
-    window.location.href = 'login.html';
+  if (!docSnap.exists()) {
+    alert("Perfil de usuário não encontrado.");
+    window.location.href = "login.html";
+    return;
+  }
+
+  const tipo = docSnap.data().tipo;
+
+  if (tipo !== "admin") {
+    alert("Acesso restrito: somente administradores podem acessar esta página.");
+    window.location.href = "vendas.html"; // ou outra página permitida para funcionário
   }
 });
+
 
 /* ---------- Finalizar expediente ---------- */
 btnFinalizar.addEventListener('click', async () => {
