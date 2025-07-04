@@ -142,4 +142,48 @@ async function registrarVenda(event) {
 }
 
 async function carregarVendas() {
-  tb
+  tbody.innerHTML = "";
+  totalDiaEl.textContent = "R$ 0,00";
+  let total = 0;
+
+  // Data inicial para filtro (meio-dia 00:00:00)
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  try {
+    const vendasSnapshot = await getDocs(
+      query(
+        collection(db, "vendas"),
+        where("criadoEm", ">=", hoje),
+        orderBy("criadoEm", "desc")
+      )
+    );
+
+    if (vendasSnapshot.empty) {
+      tbody.innerHTML = `<tr><td colspan="4">Nenhuma venda realizada hoje.</td></tr>`;
+      return;
+    }
+
+    vendasSnapshot.forEach(docSnap => {
+      const venda = docSnap.data();
+      const data = venda.criadoEm?.toDate?.().toLocaleString() || "N/A";
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${venda.produto}</td>
+        <td>${venda.quantidade}</td>
+        <td>R$ ${venda.subtotal.toFixed(2)}</td>
+        <td>${data}</td>
+      `;
+      tbody.appendChild(tr);
+
+      total += venda.subtotal;
+    });
+
+    totalDiaEl.textContent = `R$ ${total.toFixed(2)}`;
+
+  } catch (error) {
+    console.error("Erro ao carregar vendas:", error);
+    tbody.innerHTML = `<tr><td colspan="4">Erro ao carregar vendas.</td></tr>`;
+  }
+}
