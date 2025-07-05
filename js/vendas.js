@@ -1,153 +1,166 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+// vendas.js atualizado para múltiplos itens
+
+import { auth, db } from "./firebaseConfig.js";
 import {
-  getAuth,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
   doc,
   getDoc,
-  collection,
-  getDocs,
-  updateDoc,
-  addDoc,
   serverTimestamp,
-  query,
-  where
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// 🔧 Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
-  authDomain: "adega-lounge.firebaseapp.com",
-  projectId: "adega-lounge",
-  storageBucket: "adega-lounge.appspot.com",
-  messagingSenderId: "729628267147",
-  appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
-};
+const itensContainer = document.getElementById("itens-container");
+const addItemBtn = document.getElementById("add-item-btn");
+const valorTotalSpan = document.getElementById("valor-total");
+const formVenda = document.getElementById("form-venda");
 
-// 🔌 Inicializar Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+const produtosMap = new Map();
 
-let tipoUsuario = null;
-let produtosMap = new Map(); // id -> produto
-
-// 👤 Verifica usuário e carrega produtos
 onAuthStateChanged(auth, async (user) => {
   if (!user) return (window.location.href = "login.html");
 
   const snap = await getDoc(doc(db, "usuarios", user.uid));
-  tipoUsuario = snap.exists() ? snap.data().tipo : null;
+  const perfil = snap.exists() ? snap.data().tipo : null;
 
-  // 👁️‍🗨️ Oculta botões se for funcionário
-  if (tipoUsuario !== "admin") {
-    document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+  if (!['admin', 'funcionario'].includes(perfil)) {
+    alert("Acesso restrito.");
+    await signOut(auth);
+    window.location.href = "login.html";
+    return;
   }
 
-  await carregarProdutos();
-  await carregarVendas();
+  carregarProdutos();
 });
 
-// 📥 Preenche o <select> com produtos
 async function carregarProdutos() {
-  const select = document.getElementById("produto-select");
-  select.innerHTML = `<option value="">Selecione o produto</option>`;
+  try {
+    const snapshot = await getDocs(collection(db, "estoque"));
+    produtosMap.clear();
 
-  const produtos = await getDocs(collection(db, "estoque"));
+    snapshot.forEach(docSnap => {
+      const produto = docSnap.data();
+      produtosMap.set(docSnap.id, { ...produto, id: docSnap.id });
+    });
 
-  produtos.forEach(docSnap => {
-    const produto = docSnap.data();
-    produtosMap.set(docSnap.id, { ...produto, id: docSnap.id });
-
-    const option = document.createElement("option");
-    option.value = docSnap.id;
-    option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
-    select.appendChild(option);
-  });
+    atualizarSelects();
+  } catch (err) {
+    console.error("Erro ao carregar produtos:", err);
+  }
 }
 
-// 🧾 Registrar venda
-const form = document.getElementById("form-venda");
-form.addEventListener("submit", async (e) => {
+function atualizarSelects() {
+  const selects = document.querySelectorAll("select");
+  selects.forEach(select => {
+    const valorAnterior = select.value;
+    select.innerHTML = '<option value="">Selecione o produto</option>';
+    produtosMap.forEach((produto, id) => {
+      const option = document.createElement("option");
+      option.value = id;
+      option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
+      select.appendChild(option);
+    });
+    select.value = valorAnterior;
+  });
+  calcularTotais();
+}
+
+addItemBtn.addEventListener("click", () => {
+  const novaLinha = document.createElement("div");
+  novaLinha.classList.add("item-linha");
+  novaLinha.innerHTML = `
+    <select required>
+      <option value="">Selecione o produto</option>
+    </select>
+    <input type="number" class="quantidade-input" placeholder="Qtd" min="1" required />
+    <span class="subtotal-label">R$ 0,00</span>
+    <button type="button" class="remover-item-btn">×</button>
+  `;
+  itensContainer.appendChild(novaLinha);
+  atualizarSelects();
+});
+
+itensContainer.addEventListener("input", calcularTotais);
+itensContainer.addEventListener("change", calcularTotais);
+itensContainer.addEventListener("click", (e) => {
+  if (e.target.classList.contains("remover-item-btn")) {
+    e.target.parentElement.remove();
+    calcularTotais();
+  }
+});
+
+function calcularTotais() {
+  const linhas = document.querySelectorAll(".item-linha");
+  let total = 0;
+
+  linhas.forEach(linha => {
+    const select = linha.querySelector("select");
+    const quantidadeInput = linha.querySelector(".quantidade-input");
+    const subtotalLabel = linha.querySelector(".subtotal-label");
+
+    const id = select.value;
+    const qtd = parseInt(quantidadeInput.value);
+    const produto = produtosMap.get(id);
+
+    if (id && produto && qtd > 0) {
+      const subtotal = qtd * produto.preco;
+      subtotalLabel.textContent = `R$ ${subtotal.toFixed(2)}`;
+      total += subtotal;
+    } else {
+      subtotalLabel.textContent = "R$ 0,00";
+    }
+  });
+
+  valorTotalSpan.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+formVenda.addEventListener("submit", async (e) => {
   e.preventDefault();
+  const linhas = document.querySelectorAll(".item-linha");
+  let vendas = [];
 
-  const produtoId = document.getElementById("produto-select").value;
-  const quantidadeVendida = parseInt(document.getElementById("quantidade-venda").value);
+  linhas.forEach(linha => {
+    const select = linha.querySelector("select");
+    const quantidadeInput = linha.querySelector(".quantidade-input");
 
-  if (!produtoId || isNaN(quantidadeVendida) || quantidadeVendida <= 0) {
-    alert("Preencha corretamente os campos.");
-    return;
-  }
+    const id = select.value;
+    const qtd = parseInt(quantidadeInput.value);
+    const produto = produtosMap.get(id);
 
-  const produto = produtosMap.get(produtoId);
+    if (id && produto && qtd > 0) {
+      vendas.push({ id, nome: produto.nome, preco: produto.preco, quantidade: qtd });
+    }
+  });
 
-  if (!produto || produto.quantidade < quantidadeVendida) {
-    alert("Quantidade em estoque insuficiente.");
-    return;
-  }
-
-  const subtotal = quantidadeVendida * produto.preco;
+  if (!vendas.length) return alert("Adicione produtos válidos.");
 
   try {
-    // 🧾 Salvar venda
-    await addDoc(collection(db, "vendas"), {
-      produto: produto.nome,
-      produtoId: produtoId,
-      quantidade: quantidadeVendida,
-      subtotal,
-      criadoEm: serverTimestamp()
-    });
+    for (const venda of vendas) {
+      await addDoc(collection(db, "vendas"), {
+        produto: venda.nome,
+        quantidade: venda.quantidade,
+        subtotal: venda.quantidade * venda.preco,
+        criadoEm: serverTimestamp()
+      });
 
-    // 🔄 Atualizar estoque
-    const novoEstoque = produto.quantidade - quantidadeVendida;
-    await updateDoc(doc(db, "estoque", produtoId), {
-      quantidade: novoEstoque
-    });
+      const ref = doc(db, "estoque", venda.id);
+      const estoqueAtual = produtosMap.get(venda.id)?.quantidade || 0;
+      await updateDoc(ref, {
+        quantidade: estoqueAtual - venda.quantidade
+      });
+    }
 
-    form.reset();
-    await carregarProdutos();
-    await carregarVendas();
-
-  } catch (error) {
-    console.error("Erro ao registrar venda:", error);
+    alert("Venda registrada com sucesso!");
+    itensContainer.innerHTML = "";
+    addItemBtn.click();
+    carregarProdutos();
+  } catch (err) {
+    console.error("Erro ao registrar venda:", err);
     alert("Erro ao registrar venda.");
   }
 });
-
-// 📊 Carrega vendas do dia
-async function carregarVendas() {
-  const tbody = document.querySelector("#tabela-vendas tbody");
-  const totalDia = document.getElementById("total-dia");
-  tbody.innerHTML = "";
-  let total = 0;
-
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-
-  const vendasSnap = await getDocs(
-    query(
-      collection(db, "vendas"),
-      where("criadoEm", ">=", hoje)
-    )
-  );
-
-  vendasSnap.forEach(docSnap => {
-    const venda = docSnap.data();
-    const data = venda.criadoEm?.toDate?.().toLocaleString() || "N/A";
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${venda.produto}</td>
-      <td>${venda.quantidade}</td>
-      <td>R$ ${venda.subtotal.toFixed(2)}</td>
-      <td>${data}</td>
-    `;
-    tbody.appendChild(tr);
-
-    total += venda.subtotal;
-  });
-
-  totalDia.textContent = `R$ ${total.toFixed(2)}`;
-}
