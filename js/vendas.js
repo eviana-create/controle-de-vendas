@@ -1,99 +1,79 @@
-import { auth, db } from "./firebaseConfig.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  onAuthStateChanged,
-  signOut
+  getAuth,
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  collection,
-  addDoc,
+  getFirestore,
+  doc,
   getDoc,
+  collection,
   getDocs,
+  updateDoc,
+  addDoc,
   serverTimestamp,
   query,
-  where,
-  orderBy,
-  updateDoc,
-  doc
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ---------- Variáveis globais ---------- */
+// 🔧 Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
+  authDomain: "adega-lounge.firebaseapp.com",
+  projectId: "adega-lounge",
+  storageBucket: "adega-lounge.appspot.com",
+  messagingSenderId: "729628267147",
+  appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
+};
+
+// 🔌 Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
 let tipoUsuario = null;
-const produtoSelect = document.getElementById("produto-select");
-const form = document.getElementById("form-venda");
-const tbody = document.querySelector("#tabela-vendas tbody");
-const totalDiaEl = document.getElementById("total-dia");
-const produtosMap = new Map();
+let produtosMap = new Map(); // id -> produto
 
-/* ---------- Inicialização ---------- */
-document.addEventListener("DOMContentLoaded", () => {
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
+// 👤 Verifica usuário e carrega produtos
+onAuthStateChanged(auth, async (user) => {
+  if (!user) return (window.location.href = "login.html");
 
-    // Pega tipo do usuário
-    const snap = await getDoc(doc(db, "usuarios", user.uid));
-    tipoUsuario = snap.exists() ? snap.data().tipo : null;
+  const snap = await getDoc(doc(db, "usuarios", user.uid));
+  tipoUsuario = snap.exists() ? snap.data().tipo : null;
 
-    // Oculta links de admin para funcionário
-    if (tipoUsuario !== "admin") {
-      document.querySelectorAll('a[href="admin.html"], a[href="historico.html"]').forEach(el => {
-        el.style.display = "none";
-      });
-    }
+  // 👁️‍🗨️ Oculta botões se for funcionário
+  if (tipoUsuario !== "admin") {
+    document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+  }
 
-    await carregarProdutos();
-
-    // Força atualização do select só no Android (não afeta Windows/iOS)
-    if (/android/i.test(navigator.userAgent)) {
-      forcarAtualizacaoSelectAndroid();
-    }
-
-    await carregarVendas();
-  });
-
-  form.addEventListener("submit", registrarVenda);
+  await carregarProdutos();
+  await carregarVendas();
 });
 
-/* ---------- Funções ---------- */
-
+// 📥 Preenche o <select> com produtos
 async function carregarProdutos() {
-  produtoSelect.disabled = true;
-  produtoSelect.innerHTML = `<option>Carregando produtos...</option>`;
-  produtosMap.clear();
+  const select = document.getElementById("produto-select");
+  select.innerHTML = `<option value="">Selecione o produto</option>`;
 
-  try {
-    const produtosSnapshot = await getDocs(collection(db, "estoque"));
-    produtoSelect.disabled = false;
-    produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
+  const produtos = await getDocs(collection(db, "estoque"));
 
-    produtosSnapshot.forEach(docSnap => {
-      const produto = docSnap.data();
-      produtosMap.set(docSnap.id, { ...produto, id: docSnap.id });
+  produtos.forEach(docSnap => {
+    const produto = docSnap.data();
+    produtosMap.set(docSnap.id, { ...produto, id: docSnap.id });
 
-      const option = document.createElement("option");
-      option.value = docSnap.id;
-      option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
-      produtoSelect.appendChild(option);
-    });
-
-  } catch (error) {
-    console.error("Erro ao carregar produtos:", error);
-    produtoSelect.innerHTML = `<option value="">Erro ao carregar produtos</option>`;
-  }
+    const option = document.createElement("option");
+    option.value = docSnap.id;
+    option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
+    select.appendChild(option);
+  });
 }
 
-function forcarAtualizacaoSelectAndroid() {
-  // Clona e substitui o select para forçar atualização em Android
-  const clone = produtoSelect.cloneNode(true);
-  produtoSelect.parentNode.replaceChild(clone, produtoSelect);
-}
+// 🧾 Registrar venda
+const form = document.getElementById("form-venda");
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
 
-async function registrarVenda(event) {
-  event.preventDefault();
-
-  const produtoId = produtoSelect.value;
+  const produtoId = document.getElementById("produto-select").value;
   const quantidadeVendida = parseInt(document.getElementById("quantidade-venda").value);
 
   if (!produtoId || isNaN(quantidadeVendida) || quantidadeVendida <= 0) {
@@ -103,12 +83,7 @@ async function registrarVenda(event) {
 
   const produto = produtosMap.get(produtoId);
 
-  if (!produto) {
-    alert("Produto não encontrado.");
-    return;
-  }
-
-  if (produto.quantidade < quantidadeVendida) {
+  if (!produto || produto.quantidade < quantidadeVendida) {
     alert("Quantidade em estoque insuficiente.");
     return;
   }
@@ -116,16 +91,16 @@ async function registrarVenda(event) {
   const subtotal = quantidadeVendida * produto.preco;
 
   try {
-    // Salva venda no Firestore
+    // 🧾 Salvar venda
     await addDoc(collection(db, "vendas"), {
       produto: produto.nome,
-      produtoId,
+      produtoId: produtoId,
       quantidade: quantidadeVendida,
       subtotal,
       criadoEm: serverTimestamp()
     });
 
-    // Atualiza estoque
+    // 🔄 Atualizar estoque
     const novoEstoque = produto.quantidade - quantidadeVendida;
     await updateDoc(doc(db, "estoque", produtoId), {
       quantidade: novoEstoque
@@ -139,51 +114,40 @@ async function registrarVenda(event) {
     console.error("Erro ao registrar venda:", error);
     alert("Erro ao registrar venda.");
   }
-}
+});
 
+// 📊 Carrega vendas do dia
 async function carregarVendas() {
+  const tbody = document.querySelector("#tabela-vendas tbody");
+  const totalDia = document.getElementById("total-dia");
   tbody.innerHTML = "";
-  totalDiaEl.textContent = "R$ 0,00";
   let total = 0;
 
-  // Data inicial para filtro (meio-dia 00:00:00)
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  try {
-    const vendasSnapshot = await getDocs(
-      query(
-        collection(db, "vendas"),
-        where("criadoEm", ">=", hoje),
-        orderBy("criadoEm", "desc")
-      )
-    );
+  const vendasSnap = await getDocs(
+    query(
+      collection(db, "vendas"),
+      where("criadoEm", ">=", hoje)
+    )
+  );
 
-    if (vendasSnapshot.empty) {
-      tbody.innerHTML = `<tr><td colspan="4">Nenhuma venda realizada hoje.</td></tr>`;
-      return;
-    }
+  vendasSnap.forEach(docSnap => {
+    const venda = docSnap.data();
+    const data = venda.criadoEm?.toDate?.().toLocaleString() || "N/A";
 
-    vendasSnapshot.forEach(docSnap => {
-      const venda = docSnap.data();
-      const data = venda.criadoEm?.toDate?.().toLocaleString() || "N/A";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${venda.produto}</td>
+      <td>${venda.quantidade}</td>
+      <td>R$ ${venda.subtotal.toFixed(2)}</td>
+      <td>${data}</td>
+    `;
+    tbody.appendChild(tr);
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${venda.produto}</td>
-        <td>${venda.quantidade}</td>
-        <td>R$ ${venda.subtotal.toFixed(2)}</td>
-        <td>${data}</td>
-      `;
-      tbody.appendChild(tr);
+    total += venda.subtotal;
+  });
 
-      total += venda.subtotal;
-    });
-
-    totalDiaEl.textContent = `R$ ${total.toFixed(2)}`;
-
-  } catch (error) {
-    console.error("Erro ao carregar vendas:", error);
-    tbody.innerHTML = `<tr><td colspan="4">Erro ao carregar vendas.</td></tr>`;
-  }
+  totalDia.textContent = `R$ ${total.toFixed(2)}`;
 }
