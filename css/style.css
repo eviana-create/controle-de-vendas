@@ -187,19 +187,20 @@ th {
   cursor: pointer;
 }
 /* Melhor compatibilidade para o <select> */
+/* css/style.css — seletores finais */
 select {
   -webkit-appearance: menulist;
   appearance: menulist;
-  background-color: white;
-  color: black;
+  background-color: #fff;
+  color: #000;
   font-size: 16px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
 }
+
 
 
 
