@@ -18,105 +18,111 @@
     </nav>
     <button id="btn-voltar">🔙 Voltar</button>
 
-    <!-- ——— vendas.html (somente o formulário) ——— -->
-<h2>Registrar Venda</h2>
+    <h2>Registrar Venda</h2>
 
-<form id="form-venda">
-  <div id="itens-container">
-    <!-- primeira linha padrão -->
-    <div class="item-linha">
-      <select id="produto-select" required>
-        <option value="">Selecione o produto</option>
-      </select>
+    <form id="form-venda">
+      <div id="itens-container">
+        <!-- Linha inicial padrão -->
+        <div class="item-linha">
+          <select id="produto-select" required>
+            <option value="">Selecione o produto</option>
+          </select>
 
-      <input
-        type="number"
-        class="quantidade-input"
-        placeholder="Qtd"
-        min="1"
-        required
-      />
+          <input
+            type="number"
+            class="quantidade-input"
+            placeholder="Qtd"
+            min="1"
+            required
+          />
 
-      <span class="subtotal-label">R$ 0,00</span>
-      <button type="button" class="remover-item-btn">×</button>
+          <span class="subtotal-label">R$ 0,00</span>
+          <button type="button" class="remover-item-btn">×</button>
+        </div>
+      </div>
+
+      <button type="button" id="add-item-btn">Adicionar item</button>
+
+      <h3>Valor total: <span id="valor-total">R$ 0,00</span></h3>
+
+      <button type="submit">Concluir Venda</button>
+
+      <!-- Botões adicionais -->
+      <div style="margin-top: 1rem;">
+        <button type="button" id="btn-pagar">💸 Pagar (Pix)</button>
+        <button type="button" id="btn-fiado">🧾 Crédito / Fiado</button>
+        <button type="button" id="finalizar-expediente">Finalizar Expediente</button>
+      </div>
+
+      <!-- QR Code -->
+      <div id="qrcode-container" style="margin-top: 1rem;"></div>
+    </form>
+
+    <h3>Vendas Realizadas</h3>
+    <div class="tabela-responsiva">
+      <table id="tabela-vendas">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Subtotal (R$)</th>
+            <th>Data</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
-  </div>
 
-  <button type="button" id="add-item-btn">Adicionar item</button>
-
-  <h3>Valor total: <span id="valor-total">R$ 0,00</span></h3>
-
-  <button type="submit">Concluir Venda</button>
-</form>
-
-
-<h3>Vendas Realizadas</h3>
-<div class="tabela-responsiva">
-  <table id="tabela-vendas">
-    <thead>
-      <tr>
-        <th>Produto</th>
-        <th>Quantidade</th>
-        <th>Subtotal (R$)</th>
-        <th>Data</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
-
-<h3>Total de Vendas do Dia: <span id="total-dia">R$ 0,00</span></h3>
-
+    <h3>Total de Vendas do Dia: <span id="total-dia">R$ 0,00</span></h3>
   </div>
 
   <script type="module" src="./js/vendas.js"></script>
   <script type="module" src="./js/logout.js"></script>
 
+  <!-- Ocultar abas para funcionário -->
+  <script type="module">
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { auth, db } from "./js/firebaseConfig.js";
 
-<script type="module">
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { auth, db } from "./js/firebaseConfig.js"; // 🔁 Garante uso centralizado
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = "login.html";
+        return;
+      }
 
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
+      const docRef = doc(db, "usuarios", user.uid);
+      const docSnap = await getDoc(docRef);
+
+      if (!docSnap.exists()) {
+        alert("Perfil de usuário não encontrado.");
+        return;
+      }
+
+      const tipo = docSnap.data().tipo;
+
+      if (tipo === "funcionario") {
+        const adminLink = document.querySelector('a[href="admin.html"]');
+        const historicoLink = document.querySelector('a[href="historico.html"]');
+        if (adminLink) adminLink.style.display = "none";
+        if (historicoLink) historicoLink.style.display = "none";
+      }
+    });
+  </script>
+
+  <!-- Banner instalação iOS -->
+  <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
+    📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
+    <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
+  </div>
+
+  <script>
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isInStandalone = window.navigator.standalone;
+
+    if (isIOS && !isInStandalone) {
+      document.getElementById("install-banner").style.display = "block";
     }
-
-    const docRef = doc(db, "usuarios", user.uid);
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      alert("Perfil de usuário não encontrado.");
-      return;
-    }
-
-    const tipo = docSnap.data().tipo;
-
-    if (tipo === "funcionario") {
-      // Oculta botões visíveis apenas para admin
-      const adminLink = document.querySelector('a[href="admin.html"]');
-      const historicoLink = document.querySelector('a[href="historico.html"]');
-      if (adminLink) adminLink.style.display = "none";
-      if (historicoLink) historicoLink.style.display = "none";
-    }
-  });
-</script>
-    <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
-  📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
-  <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
-</div>
-
-<script>
-  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-  const isInStandalone = window.navigator.standalone;
-
-  if (isIOS && !isInStandalone) {
-    document.getElementById("install-banner").style.display = "block";
-  }
-</script>
-
-
+  </script>
 </body>
 </html>

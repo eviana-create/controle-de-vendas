@@ -5,14 +5,17 @@ import {
   onAuthStateChanged,
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import {
   collection,
   addDoc,
   getDocs,
   doc,
   getDoc,
+  updateDoc,
   serverTimestamp,
-  updateDoc
+  query,
+  where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const produtoSelect = document.getElementById("produto-select");
@@ -20,28 +23,33 @@ const quantidadeInput = document.querySelector(".quantidade-input");
 const btnAdicionar = document.getElementById("add-item-btn");
 const listaVendas = document.getElementById("itens-container");
 const totalSpan = document.getElementById("valor-total");
-const btnRegistrar = document.querySelector("form#form-venda button[type='submit']");
+const btnRegistrar = document.querySelector("#form-venda button[type='submit']");
+const totalDiaSpan = document.getElementById("total-dia");
+const btnFinalizar = document.getElementById("finalizar-expediente");
 
 const produtosMap = new Map();
 let vendas = [];
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) return (window.location.href = "login.html");
+
   const snap = await getDoc(doc(db, "usuarios", user.uid));
   const perfil = snap.exists() ? snap.data().tipo : null;
-  if (!['admin', 'funcionario'].includes(perfil)) {
+
+  if (!["admin", "funcionario"].includes(perfil)) {
     alert("Acesso restrito.");
     await signOut(auth);
     window.location.href = "login.html";
     return;
   }
-  carregarProdutos();
+
+  await carregarProdutos();
+  await carregarLucroDoDia();
 });
 
 async function carregarProdutos() {
-  if (!produtoSelect) return;
   produtoSelect.disabled = true;
-  produtoSelect.innerHTML = `<option>Carregando produtos...</option>`;
+  produtoSelect.innerHTML = `<option>Carregando...</option>`;
   produtosMap.clear();
 
   try {
@@ -67,105 +75,142 @@ async function carregarProdutos() {
 btnAdicionar.addEventListener("click", () => {
   const id = produtoSelect.value;
   const qtd = parseInt(quantidadeInput.value);
-  if (!id || !qtd || qtd <= 0) {
-    alert("Selecione um produto e insira uma quantidade válida.");
+  if (!id || isNaN(qtd) || qtd <= 0) {
+    alert("Preencha o produto e uma quantidade válida.");
     return;
   }
 
   const produto = produtosMap.get(id);
   if (!produto) return;
 
-  const existente = vendas.find(v => v.id === id);
-  if (existente) {
-    existente.quantidade += qtd;
-    existente.subtotal = existente.quantidade * produto.preco;
-  } else {
-    vendas.push({
-      id,
-      produto: produto.nome,
-      quantidade: qtd,
-      preco: produto.preco,
-      subtotal: qtd * produto.preco
-    });
-  }
+  const linha = document.createElement("div");
+  linha.className = "item-linha";
 
-  atualizarLista();
+  linha.innerHTML = `
+    <select disabled>
+      <option>${produto.nome}</option>
+    </select>
+    <input type="number" value="${qtd}" min="1" disabled />
+    <span class="subtotal-label">R$ ${(produto.preco * qtd).toFixed(2)}</span>
+    <button type="button" class="remover-item-btn">×</button>
+  `;
+
+  linha.querySelector(".remover-item-btn").onclick = () => {
+    linha.remove();
+    atualizarTotal();
+  };
+
+  linha.dataset.id = id;
+  linha.dataset.qtd = qtd;
+  linha.dataset.subtotal = produto.preco * qtd;
+
+  listaVendas.appendChild(linha);
+  atualizarTotal();
+
+  produtoSelect.value = "";
+  quantidadeInput.value = "";
 });
 
-function atualizarLista() {
-  const itens = listaVendas.querySelectorAll(".item-linha");
+function atualizarTotal() {
+  const linhas = listaVendas.querySelectorAll(".item-linha");
   let total = 0;
+  vendas = [];
 
-  itens.forEach((linha, index) => {
-    const select = linha.querySelector("select");
-    const qtdInput = linha.querySelector(".quantidade-input");
-    const subtotalLabel = linha.querySelector(".subtotal-label");
-
-    const id = select.value;
-    const qtd = parseInt(qtdInput.value);
+  linhas.forEach(linha => {
+    const id = linha.dataset.id;
+    const qtd = parseInt(linha.dataset.qtd);
+    const subtotal = parseFloat(linha.dataset.subtotal);
     const produto = produtosMap.get(id);
 
-    if (produto && qtd > 0) {
-      const subtotal = qtd * produto.preco;
-      subtotalLabel.textContent = `R$ ${subtotal.toFixed(2)}`;
+    if (produto && !isNaN(qtd) && !isNaN(subtotal)) {
       total += subtotal;
-    } else {
-      subtotalLabel.textContent = "R$ 0,00";
+      vendas.push({ id, nome: produto.nome, quantidade: qtd, subtotal });
+
+      // Atualiza visual do subtotal
+      const subtotalSpan = linha.querySelector(".subtotal-label");
+      if (subtotalSpan) {
+        subtotalSpan.textContent = `R$ ${subtotal.toFixed(2)}`;
+      }
     }
   });
 
   totalSpan.textContent = `R$ ${total.toFixed(2)}`;
 }
 
-listaVendas.addEventListener("input", atualizarLista);
-
 btnRegistrar.addEventListener("click", async (e) => {
   e.preventDefault();
-  const itens = listaVendas.querySelectorAll(".item-linha");
-  const vendasParaRegistrar = [];
-
-  for (const linha of itens) {
-    const select = linha.querySelector("select");
-    const qtdInput = linha.querySelector(".quantidade-input");
-    const id = select.value;
-    const qtd = parseInt(qtdInput.value);
-    const produto = produtosMap.get(id);
-
-    if (produto && qtd > 0) {
-      vendasParaRegistrar.push({
-        id,
-        nome: produto.nome,
-        quantidade: qtd,
-        subtotal: qtd * produto.preco
-      });
-    }
-  }
-
-  if (!vendasParaRegistrar.length) {
-    alert("Adicione pelo menos um produto com quantidade válida.");
+  if (!vendas.length) {
+    alert("Adicione ao menos um item.");
     return;
   }
 
   try {
-    for (const venda of vendasParaRegistrar) {
+    for (const venda of vendas) {
       await addDoc(collection(db, "vendas"), {
         produto: venda.nome,
         quantidade: venda.quantidade,
         subtotal: venda.subtotal,
-        criadoEm: serverTimestamp()
+        criadoEm: serverTimestamp(),
+        usuario: auth.currentUser.uid
       });
 
+      // Atualiza estoque
       const ref = doc(db, "estoque", venda.id);
-      const estoqueAtual = produtosMap.get(venda.id)?.quantidade || 0;
-      await updateDoc(ref, {
-        quantidade: estoqueAtual - venda.quantidade
-      });
+      const produtoAtual = produtosMap.get(venda.id);
+      if (produtoAtual) {
+        const novaQtd = produtoAtual.quantidade - venda.quantidade;
+        await updateDoc(ref, { quantidade: novaQtd });
+      }
     }
 
-    alert("Venda registrada com sucesso!");
-    window.location.reload();
+    alert("Venda registrada com sucesso.");
+    vendas = [];
+    listaVendas.innerHTML = "";
+    atualizarTotal();
+    await carregarProdutos();
+    await carregarLucroDoDia();
   } catch (err) {
     console.error("Erro ao registrar venda:", err);
     alert("Erro ao registrar venda.");
+  }
+});
+
+async function carregarLucroDoDia() {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const q = query(
+    collection(db, "vendas"),
+    where("criadoEm", ">=", hoje)
+  );
+
+  let total = 0;
+  try {
+    const snap = await getDocs(q);
+    snap.forEach(doc => {
+      const venda = doc.data();
+      total += venda.subtotal || 0;
+    });
+    totalDiaSpan.textContent = `R$ ${total.toFixed(2)}`;
+  } catch (err) {
+    console.error("Erro ao calcular lucro do dia:", err);
+  }
+}
+
+btnFinalizar.addEventListener("click", async () => {
+  if (!confirm("Deseja realmente finalizar o expediente?")) return;
+
+  const valor = totalDiaSpan.textContent.replace("R$", "").trim();
+  try {
+    await addDoc(collection(db, "expedientes"), {
+      data: new Date(),
+      total: parseFloat(valor),
+      usuario: auth.currentUser.uid
+    });
+    alert("Expediente finalizado!");
+    totalDiaSpan.textContent = "R$ 0,00";
+  } catch (err) {
+    console.error("Erro ao finalizar expediente:", err);
+    alert("Erro ao finalizar expediente.");
   }
 });
