@@ -42,9 +42,46 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
+  // Carrega nomes de clientes que já têm crédito
+async function carregarClientesFiado() {
+  const clientesSet = new Set();
+  try {
+    const snap = await getDocs(collection(db, "creditos"));
+    snap.forEach(doc => {
+      const { cliente } = doc.data();
+      if (cliente) clientesSet.add(cliente);
+    });
+
+    const clienteSelect = document.getElementById("fiado-cliente");
+    clientesSet.forEach(nome => {
+      const option = document.createElement("option");
+      option.value = nome;
+      option.textContent = nome;
+      clienteSelect.appendChild(option);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar clientes fiado:", err);
+  }
+}
+
+// Carrega produtos para o modal de fiado
+function carregarProdutosFiado() {
+  const produtoSelect = document.getElementById("fiado-produto");
+  produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
+  produtosMap.forEach(produto => {
+    const option = document.createElement("option");
+    option.value = produto.nome;
+    option.textContent = `${produto.nome} (R$ ${produto.preco})`;
+    produtoSelect.appendChild(option);
+  });
+}
+
 
   await carregarProdutos();
   await carregarLucroDoDia();
+  await carregarClientesFiado();
+  carregarProdutosFiado();
+
 });
 
 async function carregarProdutos() {
@@ -214,3 +251,58 @@ btnFinalizar.addEventListener("click", async () => {
     alert("Erro ao finalizar expediente.");
   }
 });
+// Controles do Modal Crédito / Fiado
+const modalFiado = document.getElementById("modal-fiado");
+const btnFiado = document.getElementById("btn-fiado");
+const btnSalvarFiado = document.getElementById("btn-salvar-fiado");
+const btnCancelarFiado = document.getElementById("btn-cancelar-fiado");
+
+btnFiado.addEventListener("click", () => {
+  modalFiado.style.display = "flex";
+});
+
+btnCancelarFiado.addEventListener("click", () => {
+  modalFiado.style.display = "none";
+  limparModalFiado();
+});
+
+btnSalvarFiado.addEventListener("click", async () => {
+  const cliente = document.getElementById("fiado-cliente").value.trim();
+  const produto = document.getElementById("fiado-produto").value.trim();
+  const valor = parseFloat(document.getElementById("fiado-valor").value);
+
+  if (!cliente) {
+    alert("Informe o nome ou apelido do cliente.");
+    return;
+  }
+  if (!produto) {
+    alert("Informe o produto.");
+    return;
+  }
+  if (isNaN(valor) || valor <= 0) {
+    alert("Informe um valor válido maior que zero.");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "creditos"), {
+      cliente,
+      produto,
+      valor,
+      criadoEm: serverTimestamp(),
+      usuario: auth.currentUser.uid
+    });
+    alert("Crédito salvo com sucesso!");
+    modalFiado.style.display = "none";
+    limparModalFiado();
+  } catch (error) {
+    console.error("Erro ao salvar crédito:", error);
+    alert("Erro ao salvar crédito. Tente novamente.");
+  }
+});
+
+function limparModalFiado() {
+  document.getElementById("fiado-cliente").value = "";
+  document.getElementById("fiado-produto").value = "";
+  document.getElementById("fiado-valor").value = "";
+}
