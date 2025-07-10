@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 const CACHE_NAME = 'adega-v1.1.1'
+=======
+const CACHE_NAME = 'adega-v1.1.2'
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 const urlsToCache = [
   './',
   './index.html',

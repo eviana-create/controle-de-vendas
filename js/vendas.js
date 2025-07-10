@@ -42,6 +42,7 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
+<<<<<<< HEAD
   // Carrega nomes de clientes que já têm crédito
 async function carregarClientesFiado() {
   const clientesSet = new Set();
@@ -76,11 +77,14 @@ function carregarProdutosFiado() {
   });
 }
 
+=======
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 
   await carregarProdutos();
   await carregarLucroDoDia();
   await carregarClientesFiado();
   carregarProdutosFiado();
+<<<<<<< HEAD
 
 });
 
@@ -90,6 +94,16 @@ async function carregarProdutos() {
   produtosMap.clear();
 
   try {
+=======
+});
+
+async function carregarProdutos() {
+  try {
+    produtoSelect.disabled = true;
+    produtoSelect.innerHTML = `<option value="">Carregando...</option>`;
+    produtosMap.clear();
+
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
     const snapshot = await getDocs(collection(db, "estoque"));
     produtoSelect.disabled = false;
     produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
@@ -120,15 +134,29 @@ btnAdicionar.addEventListener("click", () => {
   const produto = produtosMap.get(id);
   if (!produto) return;
 
+<<<<<<< HEAD
   const linha = document.createElement("div");
   linha.className = "item-linha";
+=======
+  const subtotal = produto.preco * qtd;
+
+  const linha = document.createElement("div");
+  linha.className = "item-linha";
+  linha.dataset.id = id;
+  linha.dataset.qtd = qtd;
+  linha.dataset.subtotal = subtotal;
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 
   linha.innerHTML = `
     <select disabled>
       <option>${produto.nome}</option>
     </select>
     <input type="number" value="${qtd}" min="1" disabled />
+<<<<<<< HEAD
     <span class="subtotal-label">R$ ${(produto.preco * qtd).toFixed(2)}</span>
+=======
+    <span class="subtotal-label">R$ ${subtotal.toFixed(2)}</span>
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
     <button type="button" class="remover-item-btn">×</button>
   `;
 
@@ -137,10 +165,13 @@ btnAdicionar.addEventListener("click", () => {
     atualizarTotal();
   };
 
+<<<<<<< HEAD
   linha.dataset.id = id;
   linha.dataset.qtd = qtd;
   linha.dataset.subtotal = produto.preco * qtd;
 
+=======
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
   listaVendas.appendChild(linha);
   atualizarTotal();
 
@@ -163,7 +194,10 @@ function atualizarTotal() {
       total += subtotal;
       vendas.push({ id, nome: produto.nome, quantidade: qtd, subtotal });
 
+<<<<<<< HEAD
       // Atualiza visual do subtotal
+=======
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
       const subtotalSpan = linha.querySelector(".subtotal-label");
       if (subtotalSpan) {
         subtotalSpan.textContent = `R$ ${subtotal.toFixed(2)}`;
@@ -174,6 +208,7 @@ function atualizarTotal() {
   totalSpan.textContent = `R$ ${total.toFixed(2)}`;
 }
 
+<<<<<<< HEAD
 btnRegistrar.addEventListener("click", async (e) => {
   e.preventDefault();
   if (!vendas.length) {
@@ -212,6 +247,8 @@ btnRegistrar.addEventListener("click", async (e) => {
   }
 });
 
+=======
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 async function carregarLucroDoDia() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -234,6 +271,46 @@ async function carregarLucroDoDia() {
   }
 }
 
+<<<<<<< HEAD
+=======
+btnRegistrar.addEventListener("click", async (e) => {
+  e.preventDefault();
+  if (!vendas.length) {
+    alert("Adicione ao menos um item.");
+    return;
+  }
+
+  try {
+    for (const venda of vendas) {
+      await addDoc(collection(db, "vendas"), {
+        produto: venda.nome,
+        quantidade: venda.quantidade,
+        subtotal: venda.subtotal,
+        criadoEm: serverTimestamp(),
+        usuario: auth.currentUser.uid
+      });
+
+      const ref = doc(db, "estoque", venda.id);
+      const produtoAtual = produtosMap.get(venda.id);
+      if (produtoAtual) {
+        const novaQtd = produtoAtual.quantidade - venda.quantidade;
+        await updateDoc(ref, { quantidade: novaQtd });
+      }
+    }
+
+    alert("Venda registrada com sucesso.");
+    vendas = [];
+    listaVendas.innerHTML = "";
+    atualizarTotal();
+    await carregarProdutos();
+    await carregarLucroDoDia();
+  } catch (err) {
+    console.error("Erro ao registrar venda:", err);
+    alert("Erro ao registrar venda.");
+  }
+});
+
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 btnFinalizar.addEventListener("click", async () => {
   if (!confirm("Deseja realmente finalizar o expediente?")) return;
 
@@ -251,6 +328,7 @@ btnFinalizar.addEventListener("click", async () => {
     alert("Erro ao finalizar expediente.");
   }
 });
+<<<<<<< HEAD
 // Controles do Modal Crédito / Fiado
 const modalFiado = document.getElementById("modal-fiado");
 const btnFiado = document.getElementById("btn-fiado");
@@ -306,3 +384,5 @@ function limparModalFiado() {
   document.getElementById("fiado-produto").value = "";
   document.getElementById("fiado-valor").value = "";
 }
+=======
+>>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
