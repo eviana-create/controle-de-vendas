@@ -53,49 +53,11 @@ onAuthStateChanged(auth, async (user) => {
     window.location.href = "login.html";
     return;
   }
-<<<<<<< HEAD
-  // Carrega nomes de clientes que já têm crédito
-async function carregarClientesFiado() {
-  const clientesSet = new Set();
-  try {
-    const snap = await getDocs(collection(db, "creditos"));
-    snap.forEach(doc => {
-      const { cliente } = doc.data();
-      if (cliente) clientesSet.add(cliente);
-    });
-
-    const clienteSelect = document.getElementById("fiado-cliente");
-    clientesSet.forEach(nome => {
-      const option = document.createElement("option");
-      option.value = nome;
-      option.textContent = nome;
-      clienteSelect.appendChild(option);
-    });
-  } catch (err) {
-    console.error("Erro ao carregar clientes fiado:", err);
-  }
-}
-
-// Carrega produtos para o modal de fiado
-function carregarProdutosFiado() {
-  const produtoSelect = document.getElementById("fiado-produto");
-  produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
-  produtosMap.forEach(produto => {
-    const option = document.createElement("option");
-    option.value = produto.nome;
-    option.textContent = `${produto.nome} (R$ ${produto.preco})`;
-    produtoSelect.appendChild(option);
-  });
-}
-
-=======
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 
   await carregarProdutos();
   carregarProdutosFiado();
   await carregarLucroDoDia();
   await carregarClientesFiado();
-  carregarProdutosFiado();
 });
 
 async function carregarProdutos() {
@@ -104,7 +66,6 @@ async function carregarProdutos() {
     produtoSelect.innerHTML = `<option value="">Carregando...</option>`;
     produtosMap.clear();
 
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
     const snapshot = await getDocs(collection(db, "estoque"));
     produtoSelect.disabled = false;
     produtoSelect.innerHTML = `<option value="">Selecione o produto</option>`;
@@ -170,10 +131,6 @@ btnAdicionar.addEventListener("click", () => {
   const produto = produtosMap.get(id);
   if (!produto) return;
 
-<<<<<<< HEAD
-  const linha = document.createElement("div");
-  linha.className = "item-linha";
-=======
   const subtotal = produto.preco * qtd;
 
   const linha = document.createElement("div");
@@ -181,18 +138,13 @@ btnAdicionar.addEventListener("click", () => {
   linha.dataset.id = id;
   linha.dataset.qtd = qtd;
   linha.dataset.subtotal = subtotal;
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 
   linha.innerHTML = `
     <select disabled>
       <option>${produto.nome}</option>
     </select>
     <input type="number" value="${qtd}" min="1" disabled />
-<<<<<<< HEAD
-    <span class="subtotal-label">R$ ${(produto.preco * qtd).toFixed(2)}</span>
-=======
     <span class="subtotal-label">R$ ${subtotal.toFixed(2)}</span>
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
     <button type="button" class="remover-item-btn">×</button>
   `;
 
@@ -201,13 +153,6 @@ btnAdicionar.addEventListener("click", () => {
     atualizarTotal();
   };
 
-<<<<<<< HEAD
-  linha.dataset.id = id;
-  linha.dataset.qtd = qtd;
-  linha.dataset.subtotal = produto.preco * qtd;
-
-=======
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
   listaVendas.appendChild(linha);
   atualizarTotal();
 
@@ -230,10 +175,6 @@ function atualizarTotal() {
       total += subtotal;
       vendas.push({ id, nome: produto.nome, quantidade: qtd, subtotal });
 
-<<<<<<< HEAD
-      // Atualiza visual do subtotal
-=======
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
       const subtotalSpan = linha.querySelector(".subtotal-label");
       if (subtotalSpan) {
         subtotalSpan.textContent = `R$ ${subtotal.toFixed(2)}`;
@@ -244,47 +185,6 @@ function atualizarTotal() {
   totalSpan.textContent = `R$ ${total.toFixed(2)}`;
 }
 
-<<<<<<< HEAD
-btnRegistrar.addEventListener("click", async (e) => {
-  e.preventDefault();
-  if (!vendas.length) {
-    alert("Adicione ao menos um item.");
-    return;
-  }
-
-  try {
-    for (const venda of vendas) {
-      await addDoc(collection(db, "vendas"), {
-        produto: venda.nome,
-        quantidade: venda.quantidade,
-        subtotal: venda.subtotal,
-        criadoEm: serverTimestamp(),
-        usuario: auth.currentUser.uid
-      });
-
-      // Atualiza estoque
-      const ref = doc(db, "estoque", venda.id);
-      const produtoAtual = produtosMap.get(venda.id);
-      if (produtoAtual) {
-        const novaQtd = produtoAtual.quantidade - venda.quantidade;
-        await updateDoc(ref, { quantidade: novaQtd });
-      }
-    }
-
-    alert("Venda registrada com sucesso.");
-    vendas = [];
-    listaVendas.innerHTML = "";
-    atualizarTotal();
-    await carregarProdutos();
-    await carregarLucroDoDia();
-  } catch (err) {
-    console.error("Erro ao registrar venda:", err);
-    alert("Erro ao registrar venda.");
-  }
-});
-
-=======
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 async function carregarLucroDoDia() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
@@ -307,8 +207,6 @@ async function carregarLucroDoDia() {
   }
 }
 
-<<<<<<< HEAD
-=======
 btnRegistrar.addEventListener("click", async (e) => {
   e.preventDefault();
   if (!vendas.length) {
@@ -347,7 +245,6 @@ btnRegistrar.addEventListener("click", async (e) => {
   }
 });
 
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 btnFinalizar.addEventListener("click", async () => {
   if (!confirm("Deseja realmente finalizar o expediente?")) return;
 
@@ -363,5 +260,96 @@ btnFinalizar.addEventListener("click", async () => {
   } catch (err) {
     console.error("Erro ao finalizar expediente:", err);
     alert("Erro ao finalizar expediente.");
+  }
+});
+
+// ---------- Modal Crédito / Fiado ----------
+
+if (btnFiado && modalFiado) {
+  btnFiado.addEventListener("click", () => {
+    modalFiado.style.display = "flex";
+  });
+}
+
+if (btnCancelarFiado && modalFiado) {
+  btnCancelarFiado.addEventListener("click", () => {
+    modalFiado.style.display = "none";
+    limparModalFiado();
+  });
+}
+
+btnAdicionarFiado.addEventListener("click", () => {
+  const nomeProduto = produtoSelectFiado.value;
+  const quantidade = parseInt(quantidadeInputFiado.value);
+  if (!nomeProduto || isNaN(quantidade) || quantidade <= 0) {
+    alert("Preencha o produto e quantidade válidos.");
+    return;
+  }
+
+  // Buscar produto pelo nome na Map
+  const produto = Array.from(produtosMap.values()).find(p => p.nome === nomeProduto);
+  if (!produto) {
+    alert("Produto não encontrado.");
+    return;
+  }
+
+  const subtotal = produto.preco * quantidade;
+
+  fiadoItens.push({ nome: nomeProduto, quantidade, subtotal });
+
+  // Atualiza lista no modal
+  const li = document.createElement("li");
+  li.textContent = `${nomeProduto} - ${quantidade}x - R$ ${subtotal.toFixed(2)}`;
+  listaItensFiado.appendChild(li);
+
+  atualizarSubtotalFiado();
+
+  // Limpar input quantidade
+  quantidadeInputFiado.value = "";
+});
+
+function atualizarSubtotalFiado() {
+  const total = fiadoItens.reduce((acc, item) => acc + item.subtotal, 0);
+  subtotalFiadoSpan.textContent = `R$ ${total.toFixed(2)}`;
+}
+
+function limparModalFiado() {
+  fiadoItens = [];
+  const cliente = document.getElementById("fiado-cliente");
+  if (cliente) cliente.value = "";
+  if (produtoSelectFiado) produtoSelectFiado.value = "";
+  if (quantidadeInputFiado) quantidadeInputFiado.value = "";
+  if (listaItensFiado) listaItensFiado.innerHTML = "";
+  if (subtotalFiadoSpan) subtotalFiadoSpan.textContent = "R$ 0,00";
+}
+
+btnSalvarFiado.addEventListener("click", async () => {
+  const cliente = document.getElementById("fiado-cliente").value.trim();
+  if (!cliente) {
+    alert("Informe o nome do cliente.");
+    return;
+  }
+  if (!fiadoItens.length) {
+    alert("Adicione pelo menos um produto.");
+    return;
+  }
+
+  try {
+    for (const item of fiadoItens) {
+      await addDoc(collection(db, "creditos"), {
+        cliente,
+        produto: item.nome,
+        quantidade: item.quantidade,
+        valor: item.subtotal,
+        criadoEm: serverTimestamp(),
+        usuario: auth.currentUser.uid
+      });
+    }
+    alert("Crédito salvo com sucesso!");
+    modalFiado.style.display = "none";
+    limparModalFiado();
+  } catch (err) {
+    console.error("Erro ao salvar crédito:", err);
+    alert("Erro ao salvar crédito. Tente novamente.");
   }
 });
