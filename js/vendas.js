@@ -1,5 +1,3 @@
-// js/vendas.js
-
 import { auth, db } from "./firebaseConfig.js";
 import {
   onAuthStateChanged,
@@ -27,8 +25,21 @@ const btnRegistrar = document.querySelector("#form-venda button[type='submit']")
 const totalDiaSpan = document.getElementById("total-dia");
 const btnFinalizar = document.getElementById("finalizar-expediente");
 
+// Modal Crédito / Fiado elements
+const modalFiado = document.getElementById("modal-fiado");
+const btnFiado = document.getElementById("btn-fiado");
+const btnCancelarFiado = document.getElementById("btn-cancelar-fiado");
+const btnSalvarFiado = document.getElementById("btn-salvar-fiado");
+
+const produtoSelectFiado = document.getElementById("fiado-produto");
+const quantidadeInputFiado = document.getElementById("fiado-quantidade");
+const btnAdicionarFiado = document.getElementById("fiado-add-item-btn");
+const listaItensFiado = document.getElementById("fiado-itens-lista");
+const subtotalFiadoSpan = document.getElementById("fiado-subtotal");
+
 const produtosMap = new Map();
 let vendas = [];
+let fiadoItens = [];
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) return (window.location.href = "login.html");
@@ -81,20 +92,10 @@ function carregarProdutosFiado() {
 >>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
 
   await carregarProdutos();
+  carregarProdutosFiado();
   await carregarLucroDoDia();
   await carregarClientesFiado();
   carregarProdutosFiado();
-<<<<<<< HEAD
-
-});
-
-async function carregarProdutos() {
-  produtoSelect.disabled = true;
-  produtoSelect.innerHTML = `<option>Carregando...</option>`;
-  produtosMap.clear();
-
-  try {
-=======
 });
 
 async function carregarProdutos() {
@@ -123,6 +124,41 @@ async function carregarProdutos() {
   }
 }
 
+function carregarProdutosFiado() {
+  if (!produtoSelectFiado) return;
+  produtoSelectFiado.innerHTML = `<option value="">Selecione o produto</option>`;
+  produtosMap.forEach(produto => {
+    const option = document.createElement("option");
+    option.value = produto.nome;
+    option.textContent = `${produto.nome} (R$ ${produto.preco.toFixed(2)})`;
+    produtoSelectFiado.appendChild(option);
+  });
+}
+
+async function carregarClientesFiado() {
+  try {
+    const clientesSet = new Set();
+    const snap = await getDocs(collection(db, "creditos"));
+    snap.forEach(doc => {
+      const { cliente } = doc.data();
+      if (cliente) clientesSet.add(cliente);
+    });
+
+    const clienteSelect = document.getElementById("fiado-cliente");
+    if (!clienteSelect) return;
+    clienteSelect.innerHTML = `<option value="">Selecione o cliente</option>`;
+    clientesSet.forEach(nome => {
+      const option = document.createElement("option");
+      option.value = nome;
+      option.textContent = nome;
+      clienteSelect.appendChild(option);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar clientes fiado:", err);
+  }
+}
+
+// Adicionar item na venda normal
 btnAdicionar.addEventListener("click", () => {
   const id = produtoSelect.value;
   const qtd = parseInt(quantidadeInput.value);
@@ -303,6 +339,7 @@ btnRegistrar.addEventListener("click", async (e) => {
     listaVendas.innerHTML = "";
     atualizarTotal();
     await carregarProdutos();
+    carregarProdutosFiado();
     await carregarLucroDoDia();
   } catch (err) {
     console.error("Erro ao registrar venda:", err);
@@ -328,61 +365,3 @@ btnFinalizar.addEventListener("click", async () => {
     alert("Erro ao finalizar expediente.");
   }
 });
-<<<<<<< HEAD
-// Controles do Modal Crédito / Fiado
-const modalFiado = document.getElementById("modal-fiado");
-const btnFiado = document.getElementById("btn-fiado");
-const btnSalvarFiado = document.getElementById("btn-salvar-fiado");
-const btnCancelarFiado = document.getElementById("btn-cancelar-fiado");
-
-btnFiado.addEventListener("click", () => {
-  modalFiado.style.display = "flex";
-});
-
-btnCancelarFiado.addEventListener("click", () => {
-  modalFiado.style.display = "none";
-  limparModalFiado();
-});
-
-btnSalvarFiado.addEventListener("click", async () => {
-  const cliente = document.getElementById("fiado-cliente").value.trim();
-  const produto = document.getElementById("fiado-produto").value.trim();
-  const valor = parseFloat(document.getElementById("fiado-valor").value);
-
-  if (!cliente) {
-    alert("Informe o nome ou apelido do cliente.");
-    return;
-  }
-  if (!produto) {
-    alert("Informe o produto.");
-    return;
-  }
-  if (isNaN(valor) || valor <= 0) {
-    alert("Informe um valor válido maior que zero.");
-    return;
-  }
-
-  try {
-    await addDoc(collection(db, "creditos"), {
-      cliente,
-      produto,
-      valor,
-      criadoEm: serverTimestamp(),
-      usuario: auth.currentUser.uid
-    });
-    alert("Crédito salvo com sucesso!");
-    modalFiado.style.display = "none";
-    limparModalFiado();
-  } catch (error) {
-    console.error("Erro ao salvar crédito:", error);
-    alert("Erro ao salvar crédito. Tente novamente.");
-  }
-});
-
-function limparModalFiado() {
-  document.getElementById("fiado-cliente").value = "";
-  document.getElementById("fiado-produto").value = "";
-  document.getElementById("fiado-valor").value = "";
-}
-=======
->>>>>>> 9a32f2c (WIP: ajustes em vendas.js e service-worker.js)
