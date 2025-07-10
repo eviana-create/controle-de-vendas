@@ -25,7 +25,6 @@ const btnRegistrar = document.querySelector("#form-venda button[type='submit']")
 const totalDiaSpan = document.getElementById("total-dia");
 const btnFinalizar = document.getElementById("finalizar-expediente");
 
-// Modal Crédito / Fiado elements
 const modalFiado = document.getElementById("modal-fiado");
 const btnFiado = document.getElementById("btn-fiado");
 const btnCancelarFiado = document.getElementById("btn-cancelar-fiado");
@@ -55,9 +54,9 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   await carregarProdutos();
-  carregarProdutosFiado();
   await carregarLucroDoDia();
   await carregarClientesFiado();
+  carregarProdutosFiado();
 });
 
 async function carregarProdutos() {
@@ -79,6 +78,8 @@ async function carregarProdutos() {
       option.textContent = `${produto.nome} (Qtd: ${produto.quantidade})`;
       produtoSelect.appendChild(option);
     });
+
+    carregarProdutosFiado();
   } catch (err) {
     console.error("Erro ao carregar produtos:", err);
     produtoSelect.innerHTML = `<option value="">Erro ao carregar</option>`;
@@ -119,7 +120,6 @@ async function carregarClientesFiado() {
   }
 }
 
-// Adicionar item na venda normal
 btnAdicionar.addEventListener("click", () => {
   const id = produtoSelect.value;
   const qtd = parseInt(quantidadeInput.value);
@@ -237,7 +237,6 @@ btnRegistrar.addEventListener("click", async (e) => {
     listaVendas.innerHTML = "";
     atualizarTotal();
     await carregarProdutos();
-    carregarProdutosFiado();
     await carregarLucroDoDia();
   } catch (err) {
     console.error("Erro ao registrar venda:", err);
@@ -263,8 +262,6 @@ btnFinalizar.addEventListener("click", async () => {
   }
 });
 
-// ---------- Modal Crédito / Fiado ----------
-
 if (btnFiado && modalFiado) {
   btnFiado.addEventListener("click", () => {
     modalFiado.style.display = "flex";
@@ -286,7 +283,6 @@ btnAdicionarFiado.addEventListener("click", () => {
     return;
   }
 
-  // Buscar produto pelo nome na Map
   const produto = Array.from(produtosMap.values()).find(p => p.nome === nomeProduto);
   if (!produto) {
     alert("Produto não encontrado.");
@@ -294,17 +290,13 @@ btnAdicionarFiado.addEventListener("click", () => {
   }
 
   const subtotal = produto.preco * quantidade;
-
   fiadoItens.push({ nome: nomeProduto, quantidade, subtotal });
 
-  // Atualiza lista no modal
   const li = document.createElement("li");
   li.textContent = `${nomeProduto} - ${quantidade}x - R$ ${subtotal.toFixed(2)}`;
   listaItensFiado.appendChild(li);
 
   atualizarSubtotalFiado();
-
-  // Limpar input quantidade
   quantidadeInputFiado.value = "";
 });
 
