@@ -3,160 +3,59 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Vendas - Adega Lounge</title>
+  <title>Estoque - Adega Lounge</title>
   <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
   <div class="container">
-    <h1>Controle de Vendas - Adega Lounge</h1>
+    <h1>Estoque - Adega Lounge</h1>
 
     <nav>
-      <a href="estoque.html">Estoque</a>
-      <a href="historico.html" id="link-historico">Histórico</a>
-      <a href="admin.html" id="link-admin">Administração</a>
-      <a href="login.html" id="logout-btn">Sair</a>
+      <a href="vendas.html">Vendas</a>
+      <a href="historico.html" id="link-historico" class="admin-only">Histórico</a>
+      <a href="admin.html" id="link-admin" class="admin-only">Administração</a>
+      <a href="login.html" id="btn-logout">Sair</a>
     </nav>
     <button id="btn-voltar">🔙 Voltar</button>
 
-    <h2>Registrar Venda</h2>
+    <!-- Formulário (apenas admin) -->
+    <div id="form-container" class="admin-only">
+      <h2 id="titulo-admin">Adicionar / Editar Produto</h2>
+      <form id="form-produto">
+        <input type="text"    id="nome-produto"        placeholder="Nome do Produto" required />
+        <input type="number"  id="quantidade-produto"  placeholder="Quantidade"       min="1" step="1"   required />
+        <input type="number"  id="preco-compra"        placeholder="Preço de Compra (R$)" step="0.01" required />
+        <input type="number"  id="preco-venda"         placeholder="Preço de Venda (R$)"  step="0.01" required />
+        <button type="submit">Cadastrar Produto</button>
+      </form>
+    </div>
 
-    <form id="form-venda">
-      <div id="itens-container">
-        <!-- Linha inicial padrão -->
-        <div class="item-linha">
-          <select id="produto-select" required>
-            <option value="">Selecione o produto</option>
-          </select>
-
-          <input
-            type="number"
-            class="quantidade-input"
-            placeholder="Qtd"
-            min="1"
-            required
-          />
-
-          <span class="subtotal-label">R$ 0,00</span>
-          <button type="button" class="remover-item-btn">×</button>
-        </div>
-      </div>
-
-      <button type="button" id="add-item-btn">Adicionar item</button>
-
-      <h3>Valor total: <span id="valor-total">R$ 0,00</span></h3>
-
-      <button type="submit">Concluir Venda</button>
-
-      <!-- Botões adicionais -->
-      <div style="margin-top: 1rem;">
-        <button type="button" id="btn-pagar">💸 Pagar (Pix)</button>
-        <button type="button" id="btn-fiado">🧾 Crédito / Fiado</button>
-        <button type="button" id="finalizar-expediente">Finalizar Expediente</button>
-      </div>
-
-      <!-- QR Code -->
-      <div id="qrcode-container" style="margin-top: 1rem;"></div>
-    </form>
-
-    <h3>Vendas Realizadas</h3>
+    <h3>Produtos em Estoque</h3>
     <div class="tabela-responsiva">
-      <table id="tabela-vendas">
+      <table id="tabela-estoque">
         <thead>
           <tr>
             <th>Produto</th>
-            <th>Quantidade</th>
-            <th>Subtotal (R$)</th>
-            <th>Data</th>
+            <th>Qtd</th>
+            <th>💵 Compra (R$)</th>
+            <th>💰 Venda&nbsp;(R$)</th>
+            <th>Total&nbsp;Compra</th>
+            <th class="admin-only">Ações</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
-
-    <h3>Total de Vendas do Dia: <span id="total-dia">R$ 0,00</span></h3>
   </div>
 
-  <script type="module" src="./js/vendas.js"></script>
-  <script type="module" src="./js/logout.js"></script>
+  <!-- Scripts -->
+  <script type="module" src="js/estoque.js"></script>
+  <script type="module" src="js/logout.js"></script>
 
-  <!-- Ocultar abas para funcionário -->
-  <script type="module">
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-    import { auth, db } from "./js/firebaseConfig.js";
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = "login.html";
-        return;
-      }
-
-      const docRef = doc(db, "usuarios", user.uid);
-      const docSnap = await getDoc(docRef);
-
-      if (!docSnap.exists()) {
-        alert("Perfil de usuário não encontrado.");
-        return;
-      }
-
-      const tipo = docSnap.data().tipo;
-
-      if (tipo === "funcionario") {
-        const adminLink = document.querySelector('a[href="admin.html"]');
-        const historicoLink = document.querySelector('a[href="historico.html"]');
-        if (adminLink) adminLink.style.display = "none";
-        if (historicoLink) historicoLink.style.display = "none";
-      }
-    });
-  </script>
-
-  <!-- Banner instalação iOS -->
+  <!-- Banner instalação iOS (sem mudanças) -->
   <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
     📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
     <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
   </div>
-
   <script>
-    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-    const isInStandalone = window.navigator.standalone;
-
-    if (isIOS && !isInStandalone) {
-      document.getElementById("install-banner").style.display = "block";
-    }
-  </script>
-  <!-- Modal Crédito / Fiado -->
-<!-- Modal Crédito / Fiado atualizado -->
-<div id="modal-fiado" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; 
-  background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:9999;">
-  <div style="background:#fff; padding:1rem 1.5rem; border-radius:5px; width:350px; box-shadow:0 0 10px rgba(0,0,0,0.25);">
-    <h3>Registrar Crédito / Fiado</h3>
-
-    <label for="fiado-cliente">Cliente:</label><br />
-    <select id="fiado-cliente" style="width:100%; margin-bottom:0.5rem;">
-      <option value="">Selecione ou digite</option>
-    </select>
-
-    <label for="fiado-produto">Produto:</label><br />
-    <select id="fiado-produto" style="width:100%; margin-bottom:0.5rem;">
-      <option value="">Selecione o produto</option>
-    </select>
-
-    <label for="fiado-quantidade">Quantidade:</label><br />
-    <input type="number" id="fiado-quantidade" min="1" placeholder="Qtd" style="width:100%; margin-bottom:0.5rem;" />
-
-    <button type="button" id="fiado-add-item-btn" style="width:100%; margin-bottom:0.5rem;">➕ Adicionar Item</button>
-
-    <ul id="fiado-itens-lista" style="max-height:120px; overflow-y:auto; padding-left:1rem; margin-bottom:0.5rem;"></ul>
-
-    <strong>Subtotal: <span id="fiado-subtotal">R$ 0,00</span></strong>
-
-    <div style="text-align:right; margin-top:1rem;">
-      <button id="btn-cancelar-fiado" type="button" style="margin-right:0.5rem;">Cancelar</button>
-      <button id="btn-salvar-fiado" type="button">Salvar</button>
-    </div>
-  </div>
-</div>
-
-
-</body>
-</html>
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLower
