@@ -200,6 +200,15 @@ select {
   width: 100%;
   box-sizing: border-box;
 }
+.btn-editar, .btn-excluir {
+  display: inline-block !important;
+  color: black;
+  background: none;
+  border: 1px solid #ccc;
+  padding: 5px;
+  font-size: 14px;
+}
+
 
 
 
