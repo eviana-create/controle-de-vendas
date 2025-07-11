@@ -1,15 +1,21 @@
-const CACHE_NAME = 'adega-v1.1.3'; // Atualize a versão sempre que mudar arquivos
+const CACHE_NAME = 'adega-v1.1.4'; // AUMENTA A VERSÃO SEMPRE!
 
 const urlsToCache = [
   './',
   './index.html',
   './admin.html',
   './funcionario.html',
+  './estoque.html',
+  './vendas.html',
+  './historico.html',
+  './creditos.html',
   './css/style.css',
   './js/login.js',
   './js/logout.js',
   './js/firebaseConfig.js',
   './js/pwa.js',
+  './js/estoque.js',
+  './js/vendas.js'
 ];
 
 // Instala e cacheia os arquivos necessários
@@ -61,7 +67,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Permite atualização forçada via mensagem (pwa.js)
+// Permite atualização forçada via mensagem (vinda do pwa.js)
 self.addEventListener('message', (event) => {
   if (event.data === 'skipWaiting') {
     console.log('[SW] Recebido skipWaiting');
