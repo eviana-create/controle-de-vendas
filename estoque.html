@@ -23,50 +23,47 @@
       <h2 id="link-admin" class="admin-only">Adicionar Produto</h2>
       <form id="form-produto">
         <input type="text" id="nome-produto" placeholder="Nome do Produto" required>
-        <input type="number" id="quantidade-produto" placeholder="Quantidade" required>
-        <input type="number" id="preco-produto" placeholder="Preço Unitário (R$)" step="0.01" required>
+        <input type="number" id="quantidade-produto" placeholder="Quantidade" min="1" required>
+        <input type="number" id="preco-compra" placeholder="Preço de Compra (R$)" step="0.01" min="0" required>
+        <input type="number" id="preco-venda" placeholder="Preço de Venda (R$)" step="0.01" min="0" required>
         <button type="submit">Cadastrar Produto</button>
       </form>
     </div>
 
     <h3>Produtos em Estoque</h3>
     <div class="tabela-responsiva">
-      <!-- trecho relevante da tabela no estoque.html -->
       <table id="tabela-estoque">
         <thead>
           <tr>
             <th>Produto</th>
             <th>Quantidade</th>
-            <th>Preço Unitário</th>
-            <th>Total</th>
-            <th>Ações</th>
+            <th>Preço Compra (R$)</th>
+            <th>Preço Venda (R$)</th>
+            <th>Total Compra (R$)</th>
+            <th class="admin-only">Ações</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
-
     </div>
   </div>
 
   <!-- Scripts -->
-  <!-- Caminhos corrigidos -->
   <script type="module" src="js/estoque.js"></script>
   <script type="module" src="js/logout.js"></script>
 
   <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
-  📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
-  <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
-</div>
+    📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
+    <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
+  </div>
 
-<script>
-  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-  const isInStandalone = window.navigator.standalone;
+  <script>
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isInStandalone = window.navigator.standalone;
 
-  if (isIOS && !isInStandalone) {
-    document.getElementById("install-banner").style.display = "block";
-  }
-</script>
-
-
+    if (isIOS && !isInStandalone) {
+      document.getElementById("install-banner").style.display = "block";
+    }
+  </script>
 </body>
 </html>

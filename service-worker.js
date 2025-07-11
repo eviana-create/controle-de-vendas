@@ -1,4 +1,4 @@
-const CACHE_NAME = 'adega-v1.1.4'; // AUMENTA A VERSÃO SEMPRE!
+const CACHE_NAME = 'adega-v1.1.5'; // AUMENTA A VERSÃO SEMPRE!
 
 const urlsToCache = [
   './',
