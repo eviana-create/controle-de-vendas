@@ -33,6 +33,7 @@
   </div>
 
   <script>
+    // Detecta iOS para exibir banner de instalação PWA
     const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
     const isInStandalone = window.navigator.standalone;
     if (isIOS && !isInStandalone) {
@@ -51,9 +52,5 @@
       `;
     }
   </script>
-  <!-- trechos relevantes -->
-<script type="module" src="./js/historico.js"></script>
-<script type="module" src="./js/logout.js"></script>
-
 </body>
 </html>
