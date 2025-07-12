@@ -111,19 +111,30 @@ function preencherSelectFiado() {
 /* ---------- Venda à vista ---------- */
 function adicionarItemVenda() {
   const id  = produtoSelect.value;
-  const qtd = parseInt(quantidadeInput.value,10);
+  const qtd = parseInt(quantidadeInput.value, 10);
 
-  if (!id || !qtd) return alert("Preencha produto e quantidade.");
+  if (!id || !qtd || qtd <= 0) {
+    alert("Preencha produto e quantidade corretamente.");
+    return;
+  }
   const prod = produtosMap.get(id);
-  if (!prod) return alert("Produto não encontrado.");
-  if (qtd > prod.quantidade) return alert("Estoque insuficiente.");
+  if (!prod) {
+    alert("Produto não encontrado.");
+    return;
+  }
+  if (qtd > prod.quantidade) {
+    alert("Estoque insuficiente.");
+    return;
+  }
 
   const existente = vendas.find(v => v.id === id);
   if (existente) {
-    if (existente.quantidade + qtd > prod.quantidade)
-      return alert("Estoque insuficiente.");
+    if (existente.quantidade + qtd > prod.quantidade) {
+      alert("Estoque insuficiente.");
+      return;
+    }
     existente.quantidade += qtd;
-    existente.subtotal    = existente.quantidade * prod.preco;
+    existente.subtotal = existente.quantidade * prod.preco;
   } else {
     vendas.push({
       id,
@@ -160,20 +171,24 @@ function renderVendas() {
 /* ---------- Registrar venda ---------- */
 async function registrarVenda(e) {
   e.preventDefault();
-  if (!vendas.length) return alert("Adicione itens.");
+
+  if (vendas.length === 0) {
+    alert("Adicione itens antes de concluir.");
+    return;
+  }
 
   try {
     for (const v of vendas) {
       await addDoc(collection(db, "vendas"), {
-        produto:   v.nome,
-        quantidade:v.quantidade,
-        subtotal:  v.subtotal,
-        criadoEm:  serverTimestamp(),
-        usuario:   auth.currentUser.uid
+        produto: v.nome,
+        quantidade: v.quantidade,
+        subtotal: v.subtotal,
+        criadoEm: serverTimestamp(),
+        usuario: auth.currentUser.uid
       });
 
-      const ref      = doc(db, "estoque", v.id);
-      const novaQtd  = produtosMap.get(v.id).quantidade - v.quantidade;
+      const ref = doc(db, "estoque", v.id);
+      const novaQtd = produtosMap.get(v.id).quantidade - v.quantidade;
       await updateDoc(ref, { quantidade: novaQtd });
       produtosMap.get(v.id).quantidade = novaQtd;
     }
@@ -192,12 +207,14 @@ async function registrarVenda(e) {
 /* ---------- Lucro do dia ---------- */
 async function carregarLucroDoDia() {
   const hoje = new Date();
-  hoje.setHours(0,0,0,0);
+  hoje.setHours(0, 0, 0, 0);
   const snap = await getDocs(
-    query(collection(db,"vendas"),
-      where("criadoEm", ">=", Timestamp.fromDate(hoje)))
+    query(
+      collection(db, "vendas"),
+      where("criadoEm", ">=", Timestamp.fromDate(hoje))
+    )
   );
-  const total = snap.docs.reduce((sum,d)=> sum + (d.data().subtotal||0), 0);
+  const total = snap.docs.reduce((sum, d) => sum + (d.data().subtotal || 0), 0);
   totalDiaSpan.textContent = `R$ ${total.toFixed(2)}`;
 }
 
@@ -206,192 +223,222 @@ async function carregarVendasDoDia() {
   const corpo = document.querySelector("#tabela-vendas-dia tbody");
   if (!corpo) return;
 
-  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
   const snap = await getDocs(
-    query(collection(db,"vendas"),
-      where("criadoEm", ">=", Timestamp.fromDate(hoje)))
+    query(
+      collection(db, "vendas"),
+      where("criadoEm", ">=", Timestamp.fromDate(hoje))
+    )
   );
 
   const mapa = new Map();
-  snap.forEach(d=>{
+  snap.forEach(d => {
     const { produto, quantidade, subtotal } = d.data();
-    if (!mapa.has(produto)) mapa.set(produto,{quantidade:0, subtotal:0});
+    if (!mapa.has(produto)) mapa.set(produto, { quantidade: 0, subtotal: 0 });
     const it = mapa.get(produto);
     it.quantidade += quantidade;
-    it.subtotal   += subtotal;
+    it.subtotal += subtotal;
   });
 
   corpo.innerHTML = mapa.size
     ? ""
     : `<tr><td colspan="3">Nenhuma venda hoje.</td></tr>`;
 
-  mapa.forEach((it,nome)=>{
-    corpo.insertAdjacentHTML("beforeend", `
+  mapa.forEach((it, nome) => {
+    corpo.insertAdjacentHTML(
+      "beforeend",
+      `
       <tr>
         <td>${nome}</td>
         <td>${it.quantidade}</td>
         <td>R$ ${it.subtotal.toFixed(2)}</td>
-      </tr>`);
+      </tr>`
+    );
   });
 }
 
 /* ---------- Fiado ---------- */
-function atualizarSubtotalFiado(){
-  const total = fiadoItens.reduce((s,i)=>s+i.subtotal,0);
+function atualizarSubtotalFiado() {
+  const total = fiadoItens.reduce((s, i) => s + i.subtotal, 0);
   fiadoSubtotalSpan.textContent = `R$ ${total.toFixed(2)}`;
 }
-function renderFiado(){
+function renderFiado() {
   fiadoItensLista.innerHTML = "";
-  fiadoItens.forEach((i,idx)=>{
-    fiadoItensLista.insertAdjacentHTML("beforeend",`
+  fiadoItens.forEach((i, idx) => {
+    fiadoItensLista.insertAdjacentHTML(
+      "beforeend",
+      `
       <li class="item-linha">
         ${i.nome} - ${i.quantidade}x - R$ ${i.subtotal.toFixed(2)}
         <button class="remover-item-btn">×</button>
-      </li>`);
+      </li>`
+    );
     fiadoItensLista.lastElementChild
-      .querySelector("button").onclick=()=>{
-        fiadoItens.splice(idx,1); renderFiado();
+      .querySelector("button")
+      .onclick = () => {
+        fiadoItens.splice(idx, 1);
+        renderFiado();
       };
   });
   atualizarSubtotalFiado();
 }
-function adicionarItemFiado(){
-  const id  = fiadoProdutoSelect.value;
-  const qtd = parseInt(fiadoQuantidadeInput.value,10);
+function adicionarItemFiado() {
+  const id = fiadoProdutoSelect.value;
+  const qtd = parseInt(fiadoQuantidadeInput.value, 10);
   const cliente = fiadoClienteInput.value.trim();
-  if(!cliente) return alert("Informe o cliente.");
-  if(!id||!qtd) return alert("Preencha produto e quantidade.");
+  if (!cliente) return alert("Informe o cliente.");
+  if (!id || !qtd || qtd <= 0) return alert("Preencha produto e quantidade.");
 
   const prod = produtosMap.get(id);
-  if(!prod) return alert("Produto inválido.");
-  if(qtd>prod.quantidade) return alert("Estoque insuficiente.");
+  if (!prod) return alert("Produto inválido.");
+  if (qtd > prod.quantidade) return alert("Estoque insuficiente.");
 
-  const ex = fiadoItens.find(i=>i.id===id);
-  if(ex){
-    if(ex.quantidade+qtd>prod.quantidade) return alert("Estoque insuficiente.");
-    ex.quantidade+=qtd; ex.subtotal = ex.quantidade*prod.preco;
-  }else{
-    fiadoItens.push({id,nome:prod.nome,quantidade:qtd,precoUnitario:prod.preco,subtotal:qtd*prod.preco});
+  const ex = fiadoItens.find(i => i.id === id);
+  if (ex) {
+    if (ex.quantidade + qtd > prod.quantidade) return alert("Estoque insuficiente.");
+    ex.quantidade += qtd;
+    ex.subtotal = ex.quantidade * prod.preco;
+  } else {
+    fiadoItens.push({
+      id,
+      nome: prod.nome,
+      quantidade: qtd,
+      precoUnitario: prod.preco,
+      subtotal: qtd * prod.preco
+    });
   }
-  fiadoProdutoSelect.value=""; fiadoQuantidadeInput.value="";
+  fiadoProdutoSelect.value = "";
+  fiadoQuantidadeInput.value = "";
   renderFiado();
 }
-async function salvarFiado(){
+async function salvarFiado() {
   const cliente = fiadoClienteInput.value.trim();
-  if(!cliente) return alert("Informe o cliente.");
-  if(!fiadoItens.length) return alert("Adicione itens.");
+  if (!cliente) return alert("Informe o cliente.");
+  if (!fiadoItens.length) return alert("Adicione itens.");
 
-  try{
-    for(const i of fiadoItens){
-      await addDoc(collection(db,"creditos"),{
-        cliente, produto:i.nome, quantidade:i.quantidade, subtotal:i.subtotal,
-        criadoEm:serverTimestamp(), usuario:auth.currentUser.uid
+  try {
+    for (const i of fiadoItens) {
+      await addDoc(collection(db, "creditos"), {
+        cliente,
+        produto: i.nome,
+        quantidade: i.quantidade,
+        subtotal: i.subtotal,
+        criadoEm: serverTimestamp(),
+        usuario: auth.currentUser.uid
       });
-      const ref = doc(db,"estoque",i.id);
+      const ref = doc(db, "estoque", i.id);
       const novaQtd = produtosMap.get(i.id).quantidade - i.quantidade;
-      await updateDoc(ref,{quantidade:novaQtd});
+      await updateDoc(ref, { quantidade: novaQtd });
       produtosMap.get(i.id).quantidade = novaQtd;
     }
     alert("Crédito salvo!");
     resetModalFiado();
-    modalFiado.style.display="none";
+    modalFiado.style.display = "none";
     await carregarProdutos();
-  }catch(err){
-    console.error(err); alert("Erro ao salvar crédito.");
+  } catch (err) {
+    console.error(err);
+    alert("Erro ao salvar crédito.");
   }
 }
-function resetModalFiado(){
-  fiadoItens=[];
-  fiadoClienteInput.value="";
-  fiadoProdutoSelect.value="";
-  fiadoQuantidadeInput.value="";
+function resetModalFiado() {
+  fiadoItens = [];
+  fiadoClienteInput.value = "";
+  fiadoProdutoSelect.value = "";
+  fiadoQuantidadeInput.value = "";
   renderFiado();
 }
 
 /* ---------- PIX ---------- */
-// === Configurações do recebedor ===
-const PIX_CHAVE   = "+5511950324119";
-const PIX_NOME    = "EMERSON VIANA";          // <= MÁX 25 caracteres, sem acentos
-const PIX_CIDADE  = "SAO BERNARDO";           // <= 15 caracteres, sem acentos
+// Configurações do recebedor
+const PIX_CHAVE = "+5511950324119";
+const PIX_NOME = "EMERSON VIANA"; // Máx 25 chars sem acentos
+const PIX_CIDADE = "SAO BERNARDO"; // Máx 15 chars sem acentos
 
-function gerarPixQRCode(){
-  if(vendas.length===0) return alert("Adicione itens antes de pagar.");
+function gerarPixQRCode() {
+  if (vendas.length === 0) return alert("Adicione itens antes de pagar.");
 
-  const total = vendas.reduce((s,i)=>s+i.subtotal,0).toFixed(2);
+  const total = vendas.reduce((s, i) => s + i.subtotal, 0).toFixed(2);
 
-  // ----- Monta payload EMV ---------------------------------
-  const idPayload  = "000201";
-  const idPix      = "26";
-  const guid       = "0014BR.GOV.BCB.PIX";
-  const chave      = `01${PIX_CHAVE.length.toString().padStart(2,"0")}${PIX_CHAVE}`;
-  const merchant   = idPix + (guid.length + chave.length).toString().padStart(2,"0") + guid + chave;
-  const merchantCat= "52040000";
-  const currency   = "5303986";
-  const amount     = `54${total.length.toString().padStart(2,"0")}${total.replace(".","")}`;
-  const country    = "5802BR";
-  const nameField  = `59${PIX_NOME.length.toString().padStart(2,"0")}${PIX_NOME}`;
-  const cityField  = `60${PIX_CIDADE.length.toString().padStart(2,"0")}${PIX_CIDADE}`;
-  const addData    = "62070503***";
-  const crc16Init  = "6304";
+  // Monta payload EMV Pix
+  const idPayload = "000201";
+  const idPix = "26";
+  const guid = "0014BR.GOV.BCB.PIX";
+  const chave = `01${PIX_CHAVE.length.toString().padStart(2, "0")}${PIX_CHAVE}`;
+  const merchant = idPix + (guid.length + chave.length).toString().padStart(2, "0") + guid + chave;
+  const merchantCat = "52040000";
+  const currency = "5303986";
+  const amount = `54${total.length.toString().padStart(2, "0")}${total.replace(".", "")}`;
+  const country = "5802BR";
+  const nameField = `59${PIX_NOME.length.toString().padStart(2, "0")}${PIX_NOME}`;
+  const cityField = `60${PIX_CIDADE.length.toString().padStart(2, "0")}${PIX_CIDADE}`;
+  const addData = "62070503***";
+  const crc16Init = "6304";
 
-  const payloadSemCRC = idPayload + merchant + merchantCat + currency + amount + country + nameField + cityField + addData + crc16Init;
+  const payloadSemCRC =
+    idPayload + merchant + merchantCat + currency + amount + country + nameField + cityField + addData + crc16Init;
 
   const crc = gerarCRC16(payloadSemCRC);
   const payload = payloadSemCRC + crc;
-  // ----------------------------------------------------------
 
   QRCode.toCanvas(pixQRCodeCanvas, payload, { width: 220 }, err => {
     if (err) console.error(err);
   });
-  modalPix.style.display="flex";
+  modalPix.style.display = "flex";
 }
 
-/* ---- Função CRC16-CCITT (obrigatória no Pix) ---- */
-function gerarCRC16(str){
+// Função CRC16-CCITT (obrigatória no Pix)
+function gerarCRC16(str) {
   let polinomio = 0x1021;
-  let result    = 0xFFFF;
+  let result = 0xffff;
 
-  for (let i=0; i<str.length; i++){
-    result ^= str.charCodeAt(i)<<8;
-    for(let j=0;j<8;j++){
-      result = (result & 0x8000) ? (result<<1) ^ polinomio : result<<1;
-      result &= 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    result ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      result = (result & 0x8000) ? (result << 1) ^ polinomio : result << 1;
+      result &= 0xffff;
     }
   }
-  return result.toString(16).toUpperCase().padStart(4,"0");
+  return result.toString(16).toUpperCase().padStart(4, "0");
 }
 
 /* ---------- Listeners ---------- */
-document.addEventListener("DOMContentLoaded",()=>{
-  document.getElementById("add-item-btn")
-    ?.addEventListener("click", adicionarItemVenda);
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("add-item-btn")?.addEventListener("click", adicionarItemVenda);
   formVenda?.addEventListener("submit", registrarVenda);
 
   /* Fiado */
-  btnFiado?.addEventListener("click", ()=>{ resetModalFiado(); modalFiado.style.display="flex"; });
-  btnCancelarFiado?.addEventListener("click", ()=> modalFiado.style.display="none");
+  btnFiado?.addEventListener("click", () => {
+    resetModalFiado();
+    modalFiado.style.display = "flex";
+  });
+  btnCancelarFiado?.addEventListener("click", () => (modalFiado.style.display = "none"));
   btnFiadoAddItem?.addEventListener("click", adicionarItemFiado);
   btnSalvarFiado?.addEventListener("click", salvarFiado);
-  modalFiado?.addEventListener("click", e=>{
-    if(e.target===modalFiado){ modalFiado.style.display="none"; }
+  modalFiado?.addEventListener("click", e => {
+    if (e.target === modalFiado) {
+      modalFiado.style.display = "none";
+    }
   });
 
   /* Pix */
   btnPagarPix?.addEventListener("click", gerarPixQRCode);
-  btnFecharPix?.addEventListener("click", ()=> modalPix.style.display="none");
+  btnFecharPix?.addEventListener("click", () => (modalPix.style.display = "none"));
 
   /* Finalizar expediente */
-  btnFinalizar?.addEventListener("click", async()=>{
-    if(!confirm("Deseja finalizar o expediente?")) return;
-    const total = parseFloat(totalDiaSpan.textContent.replace("R$","").replace(",","."))||0;
-    try{
-      await addDoc(collection(db,"expedientes"),{
-        data:new Date(), total, usuario:auth.currentUser.uid
+  btnFinalizar?.addEventListener("click", async () => {
+    if (!confirm("Deseja finalizar o expediente?")) return;
+    const total = parseFloat(totalDiaSpan.textContent.replace("R$", "").replace(",", ".")) || 0;
+    try {
+      await addDoc(collection(db, "expedientes"), {
+        data: new Date(),
+        total,
+        usuario: auth.currentUser.uid
       });
       alert("Expediente finalizado!");
-      totalDiaSpan.textContent="R$ 0,00";
-      document.querySelector("#tabela-vendas-dia tbody").innerHTML="";
-    }catch(err){
+      totalDiaSpan.textContent = "R$ 0,00";
+      document.querySelector("#tabela-vendas-dia tbody").innerHTML = "";
+    } catch (err) {
       console.error(err);
       alert("Erro ao finalizar expediente.");
     }
