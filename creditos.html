@@ -5,14 +5,60 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Clientes com Crédito - Adega Lounge</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    /* Estilo básico para modal */
+    #modal-adicionar-credito {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+    }
+    #modal-adicionar-credito .modal-conteudo {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+    }
+    #modal-adicionar-credito label {
+      display: block;
+      margin-top: 1rem;
+    }
+    #modal-adicionar-credito input, #modal-adicionar-credito select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      box-sizing: border-box;
+    }
+    #modal-adicionar-credito button {
+      margin-top: 1rem;
+      padding: 0.6rem 1.2rem;
+    }
+    #modal-adicionar-credito .btn-fechar {
+      background: #ccc;
+      margin-right: 1rem;
+    }
+    #tabela-creditos button.pagar-btn {
+      padding: 0.3rem 0.6rem;
+      cursor: pointer;
+      background-color: #28a745;
+      border: none;
+      color: white;
+      border-radius: 4px;
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>Clientes com Crédito / Fiado</h1>
 
     <button onclick="window.location.href='vendas.html'">← Voltar às Vendas</button>
+    <button id="btn-abrir-modal">+ Adicionar Crédito</button>
 
-    <table id="tabela-creditos">
+    <table id="tabela-creditos" border="1" cellspacing="0" cellpadding="5" style="margin-top:1rem; width: 100%;">
       <thead>
         <tr>
           <th>Cliente</th>
@@ -26,6 +72,87 @@
     </table>
   </div>
 
+  <!-- Modal para adicionar crédito -->
+  <div id="modal-adicionar-credito">
+    <div class="modal-conteudo">
+      <h2>Adicionar Crédito</h2>
+      <form id="form-adicionar-credito">
+        <label for="input-cliente">Cliente:</label>
+        <input type="text" id="input-cliente" name="cliente" required />
+
+        <label for="input-produto">Produto:</label>
+        <input type="text" id="input-produto" name="produto" required />
+
+        <label for="input-valor">Valor (R$):</label>
+        <input type="number" step="0.01" min="0" id="input-valor" name="valor" required />
+
+        <div style="margin-top:1rem; text-align:right;">
+          <button type="button" class="btn-fechar" id="btn-fechar-modal">Cancelar</button>
+          <button type="submit">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module" src="./js/creditos.js"></script>
+
+  <script>
+    // Controle do modal
+    const btnAbrirModal = document.getElementById('btn-abrir-modal');
+    const modal = document.getElementById('modal-adicionar-credito');
+    const btnFecharModal = document.getElementById('btn-fechar-modal');
+    const formAdicionarCredito = document.getElementById('form-adicionar-credito');
+
+    btnAbrirModal.addEventListener('click', () => {
+      modal.style.display = 'flex';
+    });
+
+    btnFecharModal.addEventListener('click', () => {
+      modal.style.display = 'none';
+      formAdicionarCredito.reset();
+    });
+
+    modal.addEventListener('click', e => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+        formAdicionarCredito.reset();
+      }
+    });
+
+    // Submissão do formulário - só exibe alerta (integre com Firebase no creditos.js)
+    formAdicionarCredito.addEventListener('submit', e => {
+      e.preventDefault();
+      const cliente = formAdicionarCredito.cliente.value.trim();
+      const produto = formAdicionarCredito.produto.value.trim();
+      const valor = parseFloat(formAdicionarCredito.valor.value);
+
+      if (!cliente || !produto || isNaN(valor) || valor <= 0) {
+        alert('Preencha todos os campos corretamente.');
+        return;
+      }
+
+      // Aqui você pode chamar uma função do creditos.js para salvar no Firebase
+      alert(`Novo crédito salvo:\nCliente: ${cliente}\nProduto: ${produto}\nValor: R$ ${valor.toFixed(2)}`);
+
+      modal.style.display = 'none';
+      formAdicionarCredito.reset();
+      // Atualize a tabela de créditos após salvar (função no creditos.js)
+    });
+
+    // Função para criar botão pagar (exemplo)
+    function criarBotaoPagar(id) {
+      const btn = document.createElement('button');
+      btn.className = 'pagar-btn';
+      btn.textContent = 'Pagar';
+      btn.onclick = () => {
+        alert(`Abrir pagamento para crédito ID: ${id}`);
+        // Aqui chame função para processar pagamento e atualizar status no Firebase
+      };
+      return btn;
+    }
+
+    // Exemplo de uso: adicionar um botão pagar na última coluna de cada linha
+    // A função real para renderizar a tabela deve estar em creditos.js e usar criarBotaoPagar
+  </script>
 </body>
 </html>
