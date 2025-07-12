@@ -3,10 +3,10 @@ import {
   collection,
   getDocs,
   query,
-  orderBy,
   where,
-  doc,
-  deleteDoc
+  orderBy,
+  deleteDoc,
+  doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const tabelaCreditosBody = document.querySelector('#tabela-creditos tbody');
@@ -23,16 +23,15 @@ async function carregarCreditos() {
       return;
     }
 
-    // Agrupar por cliente
     const creditosPorCliente = new Map();
 
     snap.forEach(docSnap => {
       const data = docSnap.data();
-      const cliente   = data.cliente   ?? 'Sem cliente';
-      const produto   = data.produto   ?? '-';
-      const subtotal  = data.subtotal  ?? 0;
-      const quantidade= data.quantidade?? 0;
-      const criadoEm  = data.criadoEm  ? data.criadoEm.toDate() : null;
+      const cliente = data.cliente ?? 'Sem cliente';
+      const produto = data.produto ?? '-';
+      const subtotal = data.subtotal ?? 0;
+      const quantidade = data.quantidade ?? 0;
+      const criadoEm = data.criadoEm?.toDate?.() ?? null;
 
       if (!creditosPorCliente.has(cliente)) {
         creditosPorCliente.set(cliente, {
@@ -53,7 +52,6 @@ async function carregarCreditos() {
       }
     });
 
-    // Exibir na tabela
     tabelaCreditosBody.innerHTML = '';
 
     for (const [cliente, info] of creditosPorCliente.entries()) {
@@ -73,11 +71,9 @@ async function carregarCreditos() {
         <td>${dataFormatada}</td>
         <td><button class="pagar-btn" data-cliente="${cliente}">Pagar</button></td>
       `;
-
       tabelaCreditosBody.appendChild(tr);
     }
 
-    // Adicionar listeners aos botões "Pagar"
     document.querySelectorAll('.pagar-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const cliente = btn.dataset.cliente;
@@ -107,12 +103,12 @@ async function pagarCreditoCliente(cliente) {
       await deleteDoc(doc(db, 'creditos', docSnap.id));
     }
 
-    alert(`Crédito de "${cliente}" quitado com sucesso!`);
+    alert(`Créditos de "${cliente}" quitados com sucesso!`);
     carregarCreditos();
 
   } catch (err) {
     console.error("Erro ao quitar crédito:", err);
-    alert("Erro ao quitar crédito.");
+    alert("Erro ao quitar crédito. Veja o console.");
   }
 }
 
