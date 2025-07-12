@@ -1,76 +1,95 @@
-const CACHE_NAME = 'adega-v1.1.5'; // AUMENTA A VERSÃO SEMPRE!
+/* ===========================
+   service-worker.js  v1.1.7
+   =========================== */
+const CACHE_NAME = "adega-v1.1.8"; // AUMENTE SEMPRE QUE MUDAR ARQUIVOS!
 
 const urlsToCache = [
-  './',
-  './index.html',
-  './admin.html',
-  './funcionario.html',
-  './estoque.html',
-  './vendas.html',
-  './historico.html',
-  './creditos.html',
-  './css/style.css',
-  './js/login.js',
-  './js/logout.js',
-  './js/firebaseConfig.js',
-  './js/pwa.js',
-  './js/estoque.js',
-  './js/vendas.js'
+  "./",
+  "./index.html",
+  "./admin.html",
+  "./funcionario.html",
+  "./estoque.html",
+  "./vendas.html",
+  "./historico.html",
+  "./creditos.html",
+  "./css/style.css",
+  "./js/login.js",
+  "./js/logout.js",
+  "./js/firebaseConfig.js",
+  "./js/pwa.js",
+  "./js/estoque.js",
+  "./js/vendas.js"
 ];
 
-// Instala e cacheia os arquivos necessários
-self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando nova versão:', CACHE_NAME);
+/* -------- INSTALL -------- */
+self.addEventListener("install", (event) => {
+  console.log("[SW] Instalando:", CACHE_NAME);
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(urlsToCache).catch((err) => {
-        console.error('[SW] Erro ao adicionar arquivos ao cache:', err);
-      })
-    )
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(urlsToCache))
+      .catch((err) => console.error("[SW] Erro ao cachear:", err))
   );
-  self.skipWaiting(); // Pula para a nova versão imediatamente
+  self.skipWaiting(); // assume controle imediatamente
 });
 
-// Ativa o novo Service Worker e limpa caches antigos
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Ativando e limpando caches antigos...');
+/* -------- ACTIVATE -------- */
+self.addEventListener("activate", (event) => {
+  console.log("[SW] Ativando e limpando caches antigos…");
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
-        keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            console.log('[SW] Removendo cache antigo:', key);
-            return caches.delete(key);
-          }
-        })
+        keys.map((key) => key !== CACHE_NAME && caches.delete(key))
       )
     )
   );
-  self.clients.claim(); // Garante controle imediato sobre as páginas
+  self.clients.claim();
 });
 
-// Intercepta requisições e responde do cache (ou busca online)
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
+/* -------- FETCH -------- */
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
 
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).catch(() => {
-          if (event.request.destination === 'document') {
-            return caches.match('./index.html');
-          }
+  const acceptHeader = event.request.headers.get("accept") || "";
+  const isHTML = acceptHeader.includes("text/html");
+
+  if (isHTML) {
+    /* Network‑First para páginas */
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResp) => {
+          // Atualiza cache com nova versão
+          const respClone = networkResp.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, respClone));
+          return networkResp;
         })
-      );
-    })
-  );
+        .catch(() =>
+          /* offline → tenta cache */
+          caches.match(event.request).then(
+            (cached) => cached || caches.match("./index.html")
+          )
+        )
+    );
+  } else {
+    /* Cache‑First para assets */
+    event.respondWith(
+      caches.match(event.request).then(
+        (cached) =>
+          cached ||
+          fetch(event.request).then((networkResp) => {
+            // Guarda asset novo no cache
+            const respClone = networkResp.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, respClone));
+            return networkResp;
+          })
+      )
+    );
+  }
 });
 
-// Permite atualização forçada via mensagem (vinda do pwa.js)
-self.addEventListener('message', (event) => {
-  if (event.data === 'skipWaiting') {
-    console.log('[SW] Recebido skipWaiting');
+/* -------- Mensagens (skipWaiting) -------- */
+self.addEventListener("message", (event) => {
+  if (event.data === "skipWaiting") {
+    console.log("[SW] skipWaiting recebido");
     self.skipWaiting();
   }
 });

@@ -3,116 +3,169 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Vendas ‑ Adega Lounge</title>
+  <title>Vendas - Adega Lounge</title>
   <link rel="stylesheet" href="./css/style.css" />
   <style>
-    /* ===== Estilos ===== */
-    #modal-fiado{display:none;position:fixed;z-index:9999;inset:0;
-      background:rgba(0,0,0,.5);justify-content:center;align-items:center}
-    #modal-fiado .modal-content{background:#fff;padding:1rem 2rem;border-radius:8px;
-      max-width:420px;width:90%}
-    .item-linha{display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding:.3rem 0}
-    .remover-item-btn{background:#d9534f;border:none;color:#fff;border-radius:4px;cursor:pointer;padding:0 .5rem}
-    .remover-item-btn:hover{background:#c9302c}
-    #itens-container{margin-top:1rem;border:1px solid #ccc;padding:.5rem;max-height:180px;overflow-y:auto;background:#fafafa}
-    #fiado-itens-lista{margin-top:1rem;max-height:120px;overflow-y:auto;border:1px solid #ddd;padding:.5rem}
+    #modal-fiado {
+      display: none;
+      position: fixed;
+      z-index: 9999;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      justify-content: center;
+      align-items: center;
+    }
+    #modal-fiado .modal-content {
+      background: #fff;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      max-width: 420px;
+      width: 90%;
+    }
+    .item-linha {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #ddd;
+      padding: .3rem 0;
+    }
+    .remover-item-btn {
+      background: #d9534f;
+      border: none;
+      color: #fff;
+      border-radius: 4px;
+      cursor: pointer;
+      padding: 0 .5rem;
+    }
+    .remover-item-btn:hover {
+      background: #c9302c;
+    }
+    #itens-container {
+      margin-top: 1rem;
+      border: 1px solid #ccc;
+      padding: .5rem;
+      max-height: 180px;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+    #fiado-itens-lista {
+      margin-top: 1rem;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: .5rem;
+    }
   </style>
 </head>
 <body>
-<div class="container">
-  <h1>Vendas ‑ Adega Lounge</h1>
+  <div class="container">
+    <h1>Vendas - Adega Lounge</h1>
 
-  <nav>
-    <a href="vendas.html">Vendas</a>
-    <a href="historico.html" id="link-historico" class="admin-only">Histórico</a>
-    <a href="admin.html"    id="link-admin"     class="admin-only">Administração</a>
-    <a href="login.html"    id="btn-logout">Sair</a>
-  </nav>
+    <nav>
+      <a href="estoque.html" class="admin-only">Estoque</a>
+      <a href="creditos.html" class="admin-only">Créditos</a>
+      <a href="historico.html" class="admin-only">Histórico</a>
+      <a href="admin.html" class="admin-only">Administração</a>
+      <a href="login.html" id="btn-logout">Sair</a>
+    </nav>
 
-  <button id="btn-voltar">🔙 Voltar</button>
+    <button id="btn-voltar">🔙 Voltar</button>
 
-  <!-- ===== Formulário de venda ===== -->
-  <div id="form-venda">
-    <h2>Registrar Venda</h2>
-    <form id="form-registro-venda">
+    <div id="form-venda">
+      <h2>Registrar Venda</h2>
+      <form id="form-registro-venda">
+        <label>Produto:
+          <select id="produto-select" required>
+            <option value="">Selecione um produto</option>
+          </select>
+        </label>
+
+        <label>Quantidade:
+          <input type="number" id="quantidade-venda" min="1" step="1" required>
+        </label>
+
+        <button type="button" id="add-item-btn">Adicionar Item</button>
+
+        <div id="itens-container"></div>
+
+        <p><strong>Total:</strong> <span id="valor-total">R$ 0,00</span></p>
+
+        <!-- Botão Pagar com PIX -->
+        <button type="button" id="btn-pagar-pix">Pagar com PIX</button>
+
+        <button type="submit">Concluir Venda</button>
+      </form>
+
+      <button id="btn-fiado" type="button">Registrar Venda no Fiado (Crédito)</button>
+    </div>
+
+    <h3>Vendas realizadas (hoje)</h3>
+    <div class="tabela-responsiva">
+      <table id="tabela-vendas-dia">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Qtd</th>
+            <th>Subtotal (R$)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h3>Total do dia: <span id="total-dia">R$ 0,00</span></h3>
+    <button id="finalizar-expediente" type="button">Finalizar Expediente</button>
+  </div>
+
+  <!-- Modal Fiado -->
+  <div id="modal-fiado">
+    <div class="modal-content">
+      <h2>Venda no Fiado</h2>
+      <label>Cliente:
+        <input type="text" id="fiado-cliente" placeholder="Nome do cliente" required>
+      </label>
       <label>Produto:
-        <select id="produto-select" required>
-          <option value="">Selecione um produto</option>
+        <select id="fiado-produto" required>
+          <option value="">Selecione o produto</option>
         </select>
       </label>
-
       <label>Quantidade:
-        <input type="number" id="quantidade-venda" min="1" step="1" required>
+        <input type="number" id="fiado-quantidade" min="1" step="1" required>
       </label>
-
-      <button type="button" id="add-item-btn">Adicionar Item</button>
-
-      <div id="itens-container"></div>
-
-      <p><strong>Total:</strong> <span id="valor-total">R$ 0,00</span></p>
-
-      <button type="submit">Concluir Venda</button>
-    </form>
-
-    <button id="btn-fiado" type="button">Registrar Venda no Fiado (Crédito)</button>
+      <button type="button" id="fiado-add-item-btn">➕ Adicionar</button>
+      <ul id="fiado-itens-lista"></ul>
+      <p><strong>Subtotal:</strong> <span id="fiado-subtotal">R$ 0,00</span></p>
+      <button id="btn-salvar-fiado" type="button">Salvar Crédito</button>
+      <button id="btn-cancelar-fiado" type="button">Cancelar</button>
+    </div>
   </div>
 
-  <!-- ===== Tabela estoque resumido ===== -->
-  <h3>Produtos em Estoque</h3>
-  <div class="tabela-responsiva">
-    <table id="tabela-estoque">
-      <thead><tr><th>Produto</th><th>Qtd</th><th>Preço Venda (R$)</th><th>Total Venda (R$)</th></tr></thead>
-      <tbody></tbody>
-    </table>
+  <!-- Scripts -->
+  <script type="module" src="js/vendas.js"></script>
+  <script type="module" src="js/logout.js"></script>
+
+  <!-- Banner instalação iOS -->
+  <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
+    📲 Para instalar o app, toque em <strong>Compartilhar</strong> → <strong>‘Adicionar à Tela’</strong>.
+    <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
   </div>
+  <script>
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS && !window.matchMedia('(display-mode: standalone)').matches)
+      document.getElementById('install-banner').style.display = 'block';
+  </script>
 
-  <h3>Total do dia: <span id="total-dia">R$ 0,00</span></h3>
-  <button id="finalizar-expediente" type="button">Finalizar Expediente</button>
-</div>
-
-<!-- ===== Modal Fiado ===== -->
-<div id="modal-fiado">
-  <div class="modal-content">
-    <h2>Venda no Fiado</h2>
-
-    <label>Cliente:
-      <input type="text" id="fiado-cliente" placeholder="Nome do cliente" required>
-    </label>
-
-    <label>Produto:
-      <select id="fiado-produto" required>
-        <option value="">Selecione o produto</option>
-      </select>
-    </label>
-
-    <label>Quantidade:
-      <input type="number" id="fiado-quantidade" min="1" step="1" required>
-    </label>
-
-    <button type="button" id="fiado-add-item-btn">➕ Adicionar</button>
-
-    <ul id="fiado-itens-lista"></ul>
-
-    <p><strong>Subtotal:</strong> <span id="fiado-subtotal">R$ 0,00</span></p>
-
-    <button id="btn-salvar-fiado"   type="button">Salvar Crédito</button>
-    <button id="btn-cancelar-fiado" type="button">Cancelar</button>
+  <!-- Modal Pix -->
+<div id="modal-pix" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:10000; flex-direction:column;">
+  <div style="background:#fff; padding:1.5rem; border-radius:8px; max-width:320px; width:90%; text-align:center; position:relative;">
+    <h2>Pagamento via PIX</h2>
+    <canvas id="pix-qrcode" style="margin: 1rem auto;"></canvas>
+    <p>Escaneie o QR Code acima para pagar.</p>
+    <button id="btn-fechar-pix" style="margin-top:1rem; padding:0.5rem 1rem; cursor:pointer;">Fechar</button>
   </div>
 </div>
 
-<!-- ===== Scripts ===== -->
-<script type="module" src="js/vendas.js"></script>
-<script type="module" src="js/logout.js"></script>
+<!-- Biblioteca QR Code -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
-<!-- Banner instalação iOS (opcional) -->
-<div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
- 📲 Para instalar o app, toque em <strong>Compartilhar</strong> → <strong>‘Adicionar à Tela’</strong>.
- <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
-</div>
-<script>
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS && !window.matchMedia('(display-mode: standalone)').matches)
-    document.getElementById('install-banner').style.display = 'block';
-</script>
 </body>
 </html>

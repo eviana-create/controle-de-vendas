@@ -1,7 +1,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
   getAuth,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore,
@@ -14,7 +15,7 @@ import {
   updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Configuração Firebase
+/* ----------  Configuração Firebase  ---------- */
 const firebaseConfig = {
   apiKey: "AIzaSyCR3Q0HR9CPANGR8aIiGOn-5NP66e7CmcI",
   authDomain: "adega-lounge.firebaseapp.com",
@@ -23,165 +24,222 @@ const firebaseConfig = {
   messagingSenderId: "729628267147",
   appId: "1:729628267147:web:dfee9147983c57fe3f3a8e"
 };
+initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
+/* ----------  Estado global  ---------- */
 let tipoUsuario = null;
-let editandoId = null; // ID do produto sendo editado
+let editandoId = null; // ID do produto em edição
 
-window.addEventListener('DOMContentLoaded', () => {
+/* ----------  Referências DOM  ---------- */
+const form = document.getElementById("form-produto");
+const btnCancelarEdit = document.getElementById("btn-cancelar-edicao");
+const nomeInput = document.getElementById("nome-produto");
+const qtdInput = document.getElementById("quantidade-produto");
+const compraInput = document.getElementById("preco-compra");
+const vendaInput = document.getElementById("preco-venda");
+const tabelaBody = document.querySelector("#tabela-estoque tbody");
+
+/* ----------  Setup e autenticação  ---------- */
+window.addEventListener("DOMContentLoaded", () => {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       window.location.href = "login.html";
       return;
     }
 
-    const docRef = doc(db, "usuarios", user.uid);
-    const docSnap = await getDoc(docRef);
+    try {
+      const perfil = await getDoc(doc(db, "usuarios", user.uid));
+      if (!perfil.exists()) {
+        alert("Perfil do usuário não encontrado.");
+        await signOut(auth);
+        window.location.href = "login.html";
+        return;
+      }
+      tipoUsuario = perfil.data().tipo;
 
-    if (!docSnap.exists()) {
-      alert("Usuário sem perfil definido.");
-      await auth.signOut();
+      if (tipoUsuario !== "admin") {
+        // esconder elementos restritos a admins
+        document.querySelectorAll(".admin-only").forEach(el => el.style.display = "none");
+        form.style.display = "none";
+      }
+
+      resetForm();  // garantir que o form esteja limpo e correto
+      carregarEstoque();
+    } catch (error) {
+      console.error("Erro ao carregar perfil:", error);
+      alert("Erro ao autenticar usuário.");
+      await signOut(auth);
       window.location.href = "login.html";
+    }
+  });
+});
+
+/* ----------  Envio do formulário (cadastro/edição)  ---------- */
+form?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (tipoUsuario !== "admin") {
+    alert("Somente administradores podem alterar o estoque.");
+    return;
+  }
+
+  // Coleta e validação básica
+  const nome = nomeInput.value.trim();
+  const quantidade = Number(qtdInput.value);
+  const precoCompra = Number(compraInput.value);
+  const precoVenda = Number(vendaInput.value);
+
+  if (!nome) {
+    alert("Informe o nome do produto.");
+    nomeInput.focus();
+    return;
+  }
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    alert("Informe uma quantidade válida (inteiro maior que zero).");
+    qtdInput.focus();
+    return;
+  }
+  if (isNaN(precoCompra) || precoCompra < 0) {
+    alert("Informe um preço de compra válido (zero ou positivo).");
+    compraInput.focus();
+    return;
+  }
+  if (isNaN(precoVenda) || precoVenda < 0) {
+    alert("Informe um preço de venda válido (zero ou positivo).");
+    vendaInput.focus();
+    return;
+  }
+
+  const nomeLower = nome.toLowerCase();
+
+  try {
+    // Verifica se o produto já existe, ignorando o próprio produto em edição
+    const snap = await getDocs(collection(db, "estoque"));
+    let docDuplicadoId = null;
+
+    snap.forEach(d => {
+      const p = d.data();
+      if ((p.nome ?? "").toLowerCase() === nomeLower) {
+        if (!editandoId || editandoId !== d.id) {
+          docDuplicadoId = d.id;
+        }
+      }
+    });
+
+    if (!editandoId && docDuplicadoId) {
+      alert("Este produto já existe no estoque. Utilize o botão ✏️ para editar.");
       return;
     }
 
-    tipoUsuario = docSnap.data().tipo;
+    const dados = { nome, quantidade, precoCompra, precoVenda };
 
-    if (tipoUsuario === "funcionario") {
-      document.querySelectorAll('.admin-only').forEach(el => {
-        el.style.display = "none";
-      });
-
-      const form = document.getElementById("form-produto");
-      if (form) form.style.display = "none";
+    if (editandoId) {
+      await updateDoc(doc(db, "estoque", editandoId), dados);
+    } else {
+      await addDoc(collection(db, "estoque"), dados);
     }
 
+    resetForm();
     carregarEstoque();
-  });
 
-  const form = document.getElementById("form-produto");
-  if (form) {
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      if (tipoUsuario !== "admin") {
-        alert("Apenas administradores podem cadastrar ou editar produtos.");
-        return;
-      }
-
-      const nome = document.getElementById("nome-produto").value.trim();
-      const quantidade = Number(document.getElementById("quantidade-produto").value);
-      const preco = Number(document.getElementById("preco-produto").value);
-
-      if (!nome || quantidade <= 0 || preco <= 0) {
-        alert("Preencha todos os campos corretamente.");
-        return;
-      }
-
-      try {
-        if (editandoId) {
-          // Atualizar produto existente
-          const produtoRef = doc(db, "estoque", editandoId);
-          await updateDoc(produtoRef, { nome, quantidade, preco });
-
-          editandoId = null;
-          form.querySelector("button[type=submit]").textContent = "Cadastrar Produto";
-        } else {
-          // Adicionar novo produto
-          await addDoc(collection(db, "estoque"), { nome, quantidade, preco });
-        }
-
-        form.reset();
-        carregarEstoque();
-      } catch (error) {
-        console.error("Erro ao salvar produto:", error);
-        alert("Erro ao salvar produto: " + error.message);
-      }
-    });
+  } catch (error) {
+    console.error("Erro ao salvar produto:", error);
+    alert("Erro ao salvar produto: " + error.message);
   }
 });
 
+/* ----------  Botão cancelar edição ---------- */
+btnCancelarEdit?.addEventListener("click", () => {
+  resetForm();
+});
+
+/* ----------  Função para resetar formulário ---------- */
+function resetForm() {
+  form.reset();
+  editandoId = null;
+  form.querySelector("button[type=submit]").textContent = "Cadastrar Produto";
+  btnCancelarEdit.style.display = "none";
+  nomeInput.focus();
+}
+
+/* ----------  Carregar e exibir estoque ---------- */
 async function carregarEstoque() {
-  const tbody = document.querySelector("#tabela-estoque tbody");
-  tbody.innerHTML = "";
+  tabelaBody.innerHTML = "";
 
   try {
-    const querySnapshot = await getDocs(collection(db, "estoque"));
+    const snap = await getDocs(collection(db, "estoque"));
+    snap.forEach(d => {
+      const p = d.data();
 
-    querySnapshot.forEach((docSnap) => {
-      const item = docSnap.data();
+      // Garantir valores numéricos válidos para evitar erro toFixed
+      const quantidade = typeof p.quantidade === "number" ? p.quantidade : 0;
+      const precoCompra = typeof p.precoCompra === "number" ? p.precoCompra : 0;
+      const precoVenda = typeof p.precoVenda === "number" ? p.precoVenda : 0;
+      const totalCompra = quantidade * precoCompra;
+
       const tr = document.createElement("tr");
-      const total = item.quantidade * item.preco;
-
-      // Botões de Ação: Editar e Excluir (apenas para admin)
-      const botoes = tipoUsuario === "admin" ? `
-        <button class="btn-editar" data-id="${docSnap.id}">✏️</button>
-        <button class="btn-excluir" data-id="${docSnap.id}">🗑️</button>
-      ` : "-";
-
       tr.innerHTML = `
-        <td>${item.nome}</td>
-        <td>${item.quantidade}</td>
-        <td>R$ ${item.preco.toFixed(2)}</td>
-        <td>R$ ${total.toFixed(2)}</td>
-        <td>${botoes}</td>
+        <td>${p.nome ?? ""}</td>
+        <td>${quantidade}</td>
+        <td>R$ ${precoCompra.toFixed(2)}</td>
+        <td>R$ ${precoVenda.toFixed(2)}</td>
+        <td>R$ ${totalCompra.toFixed(2)}</td>
+        <td class="admin-only">
+          <button class="btn-editar" data-id="${d.id}">✏️</button>
+          <button class="btn-excluir" data-id="${d.id}">🗑️</button>
+        </td>
       `;
-
-      tbody.appendChild(tr);
+      tabelaBody.appendChild(tr);
     });
 
-    if (tipoUsuario === "admin") {
-      ativarBotoesAcoes();
-    }
+    if (tipoUsuario === "admin") ativarBotoesAcoes();
+
   } catch (error) {
     console.error("Erro ao carregar estoque:", error);
   }
 }
 
+/* ----------  Ativar ações dos botões editar/excluir ---------- */
 function ativarBotoesAcoes() {
-  // Botões Excluir
+  // Excluir
   document.querySelectorAll(".btn-excluir").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
-      if (confirm("Deseja excluir este produto?")) {
-        try {
-          await deleteDoc(doc(db, "estoque", id));
-          carregarEstoque();
-        } catch (error) {
-          console.error("Erro ao excluir produto:", error);
-          alert("Erro ao excluir produto.");
-        }
+    btn.onclick = async () => {
+      if (!confirm("Deseja excluir este produto?")) return;
+      try {
+        await deleteDoc(doc(db, "estoque", btn.dataset.id));
+        carregarEstoque();
+      } catch (error) {
+        console.error("Erro ao excluir produto:", error);
+        alert("Não foi possível excluir o produto.");
       }
-    });
+    };
   });
 
-  // Botões Editar
+  // Editar
   document.querySelectorAll(".btn-editar").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const id = btn.dataset.id;
+    btn.onclick = async () => {
       try {
-        const docSnap = await getDoc(doc(db, "estoque", id));
-        if (!docSnap.exists()) {
+        const snap = await getDoc(doc(db, "estoque", btn.dataset.id));
+        if (!snap.exists()) {
           alert("Produto não encontrado.");
           return;
         }
-        const item = docSnap.data();
 
-        // Preencher formulário com dados do produto para editar
-        document.getElementById("nome-produto").value = item.nome;
-        document.getElementById("quantidade-produto").value = item.quantidade;
-        document.getElementById("preco-produto").value = item.preco;
+        const p = snap.data();
+        nomeInput.value = p.nome ?? "";
+        qtdInput.value = p.quantidade ?? 0;
+        compraInput.value = p.precoCompra ?? 0;
+        vendaInput.value = p.precoVenda ?? 0;
 
-        // Alterar estado para edição
-        editandoId = id;
-        document.querySelector("#form-produto button[type=submit]").textContent = "Salvar Alterações";
+        editandoId = btn.dataset.id;
+        form.querySelector("button[type=submit]").textContent = "Salvar alterações";
+        btnCancelarEdit.style.display = "inline-block";
+        nomeInput.focus();
       } catch (error) {
-        console.error("Erro ao carregar produto para editar:", error);
+        console.error("Erro ao carregar produto para edição:", error);
         alert("Erro ao carregar produto para edição.");
       }
-    });
+    };
   });
 }
