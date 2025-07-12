@@ -10,42 +10,46 @@
   <div class="container">
     <h1>Histórico de Expedientes</h1>
 
-    <nav>
-      <a href="estoque.html">Estoque</a>
-      <a href="vendas.html">Vendas</a>
-      <a href="admin.html">Administração</a>
-      <a href="login.html" id="logout-btn">Sair</a>
+    <nav id="menu-navegacao">
+      <!-- Menu será inserido via JavaScript -->
     </nav>
 
     <div id="area-admin">
-      <!-- troque o nav apenas se quiser – deixei como estava -->
-    <button id="btn-finalizar">Finalizar Expediente</button>
-    <button id="btn-historico">Ver Histórico</button>
-    <button id="btn-limpar">Limpar Histórico</button>
-    <button id="btn-voltar">🔙 Voltar</button>
+      <button id="btn-finalizar">Finalizar Expediente</button>
+      <button id="btn-historico">Ver Histórico</button>
+      <button id="btn-voltar">🔙 Voltar</button>
 
-
-    <!-- lista fixa; conteúdo é gerado via JS -->
-    <div id="historico-container" style="margin-top:20px;"></div>
+      <div id="historico-container" style="margin-top:20px;"></div>
     </div>
   </div>
 
   <script type="module" src="../js/historico.js"></script>
   <script type="module" src="../js/logout.js"></script>
 
+  <!-- Banner de instalação PWA (iOS) -->
   <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
-  📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
-  <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
-</div>
+    📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
+    <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
+  </div>
 
-<script>
-  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-  const isInStandalone = window.navigator.standalone;
+  <script>
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isInStandalone = window.navigator.standalone;
+    if (isIOS && !isInStandalone) {
+      document.getElementById("install-banner").style.display = "block";
+    }
 
-  if (isIOS && !isInStandalone) {
-    document.getElementById("install-banner").style.display = "block";
-  }
-</script>
-
+    // Menu dinâmico com aba de Créditos
+    const menu = document.getElementById("menu-navegacao");
+    if (menu) {
+      menu.innerHTML = `
+        <a href="estoque.html">Estoque</a>
+        <a href="vendas.html">Vendas</a>
+        <a href="creditos.html">Créditos</a>
+        <a href="admin.html">Administração</a>
+        <a href="login.html" id="logout-btn">Sair</a>
+      `;
+    }
+  </script>
 </body>
 </html>
