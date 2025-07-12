@@ -3,7 +3,10 @@ import {
   collection,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  where,
+  doc,
+  deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const tabelaCreditosBody = document.querySelector('#tabela-creditos tbody');
@@ -13,7 +16,6 @@ async function carregarCreditos() {
 
   try {
     const colecao = collection(db, 'creditos');
-    // Buscar documentos ordenados por criadoEm decrescente
     const snap = await getDocs(query(colecao, orderBy('criadoEm', 'desc')));
 
     if (snap.empty) {
@@ -21,15 +23,16 @@ async function carregarCreditos() {
       return;
     }
 
-    // Agrupar por cliente
+    /* ---------- Agrupa por cliente ---------- */
     const creditosPorCliente = new Map();
 
     snap.forEach(docSnap => {
-      const data = docSnap.data();
-      const cliente = data.cliente || "Sem cliente";
-      const produto = data.produto || "-";
-      const subtotal = data.subtotal || 0;
-      const criadoEm = data.criadoEm ? data.criadoEm.toDate() : null;
+      const d = docSnap.data();
+      const cliente   = d.cliente   ?? 'Sem cliente';
+      const produto   = d.produto   ?? '-';
+      const subtotal  = d.subtotal  ?? 0;
+      const quantidade= d.quantidade?? 0;
+      const criadoEm  = d.criadoEm  ? d.criadoEm.toDate() : null;
 
       if (!creditosPorCliente.has(cliente)) {
         creditosPorCliente.set(cliente, {
@@ -38,96 +41,69 @@ async function carregarCreditos() {
           ultimaData: criadoEm
         });
       }
-
       const entry = creditosPorCliente.get(cliente);
 
-      // Somar subtotal
       entry.total += subtotal;
-
-      // Contar produtos e quantidades
-      if (entry.produtos.has(produto)) {
-        entry.produtos.set(produto, entry.produtos.get(produto) + (data.quantidade || 0));
-      } else {
-        entry.produtos.set(produto, data.quantidade || 0);
-      }
-
-      // Atualizar última data
-      if (!entry.ultimaData || (criadoEm && criadoEm > entry.ultimaData)) {
-        entry.ultimaData = criadoEm;
-      }
+      entry.produtos.set(produto, (entry.produtos.get(produto) || 0) + quantidade);
+      if (!entry.ultimaData || (criadoEm && criadoEm > entry.ultimaData)) entry.ultimaData = criadoEm;
     });
 
-    // Agora gerar as linhas da tabela
+    /* ---------- Renderiza tabela ---------- */
     tabelaCreditosBody.innerHTML = '';
 
     for (const [cliente, info] of creditosPorCliente.entries()) {
-      // Criar string resumo produtos: "Produto (Qtd)"
       const produtosResumo = Array.from(info.produtos.entries())
         .map(([prod, qtd]) => `${prod} (${qtd})`)
         .join(', ');
 
-      const dataFormatada = info.ultimaData
-        ? info.ultimaData.toLocaleString()
-        : '-';
+      const dataFmt = info.ultimaData ? info.ultimaData.toLocaleString() : '-';
 
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${cliente}</td>
-        <td>${produtosResumo}</td>
-        <td>R$ ${info.total.toFixed(2)}</td>
-        <td>${dataFormatada}</td>
-        <td><button class="pagar-btn" data-cliente="${cliente}">Pagar</button></td>
-      `;
-
-      tabelaCreditosBody.appendChild(tr);
+      tabelaCreditosBody.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td>${cliente}</td>
+          <td>${produtosResumo}</td>
+          <td>R$ ${info.total.toFixed(2)}</td>
+          <td>${dataFmt}</td>
+          <td><button class="pagar-btn" data-cliente="${cliente}">Pagar</button></td>
+        </tr>
+      `);
     }
 
-    // Adicionar listener para botão pagar por cliente
+    /* ---------- Listener botão Pagar ---------- */
     tabelaCreditosBody.querySelectorAll('.pagar-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        pagarCreditoCliente(btn.dataset.cliente);
-      });
+      btn.addEventListener('click', () => pagarCreditoCliente(btn.dataset.cliente));
     });
 
   } catch (err) {
-    tabelaCreditosBody.innerHTML = `<tr><td colspan="5">Erro ao carregar créditos.</td></tr>`;
-    console.error("Erro ao carregar créditos:", err);
+    console.error('Erro ao carregar créditos:', err);
+    tabelaCreditosBody.innerHTML = '<tr><td colspan="5">Erro ao carregar créditos.</td></tr>';
   }
 }
 
-// Função para pagar todos os créditos de um cliente (remover documentos do cliente)
+/* ---------- Quitar todos os débitos de um cliente ---------- */
 async function pagarCreditoCliente(cliente) {
-  if (!confirm(`Confirma pagamento e quitação do crédito do cliente "${cliente}"?`)) return;
+  if (!confirm(`Confirma quitação do crédito do cliente "${cliente}"?`)) return;
 
   try {
-    // Buscar todos documentos do cliente
-    const colecao = collection(db, 'creditos');
-    const q = query(colecao, where('cliente', '==', cliente));
+    const q = query(collection(db, 'creditos'), where('cliente', '==', cliente));
     const snap = await getDocs(q);
 
-    // Apagar todos os documentos (ou poderia criar um campo para marcar pago)
-    // Aqui vamos deletar para simplificar
-    const batch = db.batch ? db.batch() : null; // Verifica se batch disponível
-
-    if (batch) {
-      snap.forEach(docSnap => batch.delete(docSnap.ref));
-      await batch.commit();
-    } else {
-      // Se batch não disponível, deletar um a um (menos eficiente)
-      for (const docSnap of snap.docs) {
-        await docSnap.ref.delete();
-      }
+    if (snap.empty) {
+      alert(`Nenhum crédito encontrado para "${cliente}".`);
+      return;
     }
 
-    alert(`Crédito do cliente "${cliente}" quitado!`);
-    await carregarCreditos();
+    for (const docSnap of snap.docs) {
+      await deleteDoc(doc(db, 'creditos', docSnap.id));
+    }
+
+    alert(`Crédito de "${cliente}" quitado!`);
+    carregarCreditos();
 
   } catch (err) {
-    console.error("Erro ao quitar crédito:", err);
-    alert("Erro ao quitar crédito.");
+    console.error('Erro ao quitar crédito:', err);
+    alert('Erro ao quitar crédito.');
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  carregarCreditos();
-});
+document.addEventListener('DOMContentLoaded', carregarCreditos);
