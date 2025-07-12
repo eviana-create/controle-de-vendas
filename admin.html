@@ -18,29 +18,61 @@
       <button onclick="window.location.href='./estoque.html'">📦 Gerenciar Estoque</button>
       <button onclick="window.location.href='./vendas.html'">💰 Registrar Vendas</button>
       <button onclick="window.location.href='./historico.html'">📜 Ver Histórico</button>
+      <button onclick="window.location.href='./creditos.html'">💳 Créditos</button>
     </div>
 
     <button id="installButton" style="display:none;">📲 Instalar App</button>
     <button id="btn-logout" class="logout">🚪 Sair</button>
   </div>
 
+  <script type="module">
+    import { auth, db } from './js/firebaseConfig.js';
+    import { onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const docRef = doc(db, 'usuarios', user.uid);
+      const docSnap = await getDoc(docRef);
+      const tipo = docSnap.exists() ? docSnap.data().tipo : null;
+
+      if (tipo !== 'admin') {
+        alert('Acesso restrito ao administrador.');
+        await signOut(auth);
+        window.location.href = 'login.html';
+        return;
+      }
+
+      // Pode colocar aqui código para mostrar nome do usuário, etc.
+    });
+
+    // Logout
+    document.getElementById('btn-logout').addEventListener('click', async () => {
+      await signOut(auth);
+      window.location.href = 'login.html';
+    });
+  </script>
+
   <script type="module" src="./js/pwa.js"></script>
   <script type="module" src="./js/login.js"></script>
   <script type="module" src="./js/logout.js"></script>
 
   <div id="install-banner" style="display:none;background:#fff3cd;padding:1rem;border:1px solid #ffeeba;text-align:center;position:fixed;bottom:1rem;left:1rem;right:1rem;z-index:1000;">
-  📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
-  <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
-</div>
+    📲 Para instalar o app, toque em <strong>Compartilhar</strong> e depois <strong>'Adicionar à Tela de Início'</strong>.
+    <button onclick="this.parentElement.remove()" style="margin-left:1rem;background:none;border:none;font-size:1.25rem;">×</button>
+  </div>
 
-<script>
-  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-  const isInStandalone = window.navigator.standalone;
+  <script>
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    const isInStandalone = window.navigator.standalone;
 
-  if (isIOS && !isInStandalone) {
-    document.getElementById("install-banner").style.display = "block";
-  }
-</script>
-
+    if (isIOS && !isInStandalone) {
+      document.getElementById("install-banner").style.display = "block";
+    }
+  </script>
 </body>
 </html>

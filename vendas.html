@@ -60,12 +60,8 @@
   <div class="container">
     <h1>Vendas - Adega Lounge</h1>
 
-    <nav>
-      <a href="estoque.html" class="admin-only">Estoque</a>
-      <a href="creditos.html" class="admin-only">Créditos</a>
-      <a href="historico.html" class="admin-only">Histórico</a>
-      <a href="admin.html" class="admin-only">Administração</a>
-      <a href="login.html" id="btn-logout">Sair</a>
+    <nav id="nav-menu">
+      <!-- Menu dinâmico será inserido aqui via JS -->
     </nav>
 
     <button id="btn-voltar">🔙 Voltar</button>
@@ -140,6 +136,59 @@
   </div>
 
   <!-- Scripts -->
+  <script type="module">
+    import { auth, db } from './js/firebaseConfig.js';
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // Controle do menu de navegação conforme tipo de usuário
+    onAuthStateChanged(auth, async user => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const nav = document.getElementById('nav-menu');
+
+      try {
+        const docRef = doc(db, 'usuarios', user.uid);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+          alert('Usuário não encontrado no banco.');
+          await auth.signOut();
+          window.location.href = 'login.html';
+          return;
+        }
+
+        const tipo = docSnap.data().tipo;
+
+        if (tipo === 'admin') {
+          nav.innerHTML = `
+            <a href="estoque.html">Estoque</a>
+            <a href="creditos.html">Créditos</a>
+            <a href="historico.html">Histórico</a>
+            <a href="admin.html">Administração</a>
+            <a href="login.html" id="btn-logout">Sair</a>
+          `;
+        } else {
+          nav.innerHTML = `
+            <a href="estoque.html">Estoque</a>
+            <a href="login.html" id="btn-logout">Sair</a>
+          `;
+        }
+      } catch (error) {
+        console.error('Erro ao buscar usuário:', error);
+        alert('Erro ao autenticar usuário.');
+        await auth.signOut();
+        window.location.href = 'login.html';
+      }
+    });
+
+    // Aqui você pode importar o resto do seu js/vendas.js se quiser modularizar
+    // ou incluir aqui seu código de vendas normalmente
+  </script>
+
   <script type="module" src="js/vendas.js"></script>
   <script type="module" src="js/logout.js"></script>
 
@@ -155,17 +204,17 @@
   </script>
 
   <!-- Modal Pix -->
-<div id="modal-pix" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:10000; flex-direction:column;">
-  <div style="background:#fff; padding:1.5rem; border-radius:8px; max-width:320px; width:90%; text-align:center; position:relative;">
-    <h2>Pagamento via PIX</h2>
-    <canvas id="pix-qrcode" style="margin: 1rem auto;"></canvas>
-    <p>Escaneie o QR Code acima para pagar.</p>
-    <button id="btn-fechar-pix" style="margin-top:1rem; padding:0.5rem 1rem; cursor:pointer;">Fechar</button>
+  <div id="modal-pix" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; z-index:10000; flex-direction:column;">
+    <div style="background:#fff; padding:1.5rem; border-radius:8px; max-width:320px; width:90%; text-align:center; position:relative;">
+      <h2>Pagamento via PIX</h2>
+      <canvas id="pix-qrcode" style="margin: 1rem auto;"></canvas>
+      <p>Escaneie o QR Code acima para pagar.</p>
+      <button id="btn-fechar-pix" style="margin-top:1rem; padding:0.5rem 1rem; cursor:pointer;">Fechar</button>
+    </div>
   </div>
-</div>
 
-<!-- Biblioteca QR Code -->
-<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <!-- Biblioteca QR Code -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 
 </body>
 </html>

@@ -111,7 +111,7 @@ function preencherSelectFiado() {
 /* ---------- Venda à vista ---------- */
 function adicionarItemVenda() {
   const id  = produtoSelect.value;
-  const qtd = parseInt(quantidadeInput.value);
+  const qtd = parseInt(quantidadeInput.value,10);
 
   if (!id || !qtd) return alert("Preencha produto e quantidade.");
   const prod = produtosMap.get(id);
@@ -257,7 +257,7 @@ function renderFiado(){
 }
 function adicionarItemFiado(){
   const id  = fiadoProdutoSelect.value;
-  const qtd = parseInt(fiadoQuantidadeInput.value);
+  const qtd = parseInt(fiadoQuantidadeInput.value,10);
   const cliente = fiadoClienteInput.value.trim();
   if(!cliente) return alert("Informe o cliente.");
   if(!id||!qtd) return alert("Preencha produto e quantidade.");
@@ -309,20 +309,56 @@ function resetModalFiado(){
 }
 
 /* ---------- PIX ---------- */
+// === Configurações do recebedor ===
+const PIX_CHAVE   = "+5511950324119";
+const PIX_NOME    = "EMERSON VIANA";          // <= MÁX 25 caracteres, sem acentos
+const PIX_CIDADE  = "SAO BERNARDO";           // <= 15 caracteres, sem acentos
+
 function gerarPixQRCode(){
   if(vendas.length===0) return alert("Adicione itens antes de pagar.");
+
   const total = vendas.reduce((s,i)=>s+i.subtotal,0).toFixed(2);
 
-  /* ---- payload Pix (exemplo estático) ---- */
-  const merchantKey = "+558199999999";          // troque por sua chave real
-  const payload =
-`00020126400014BR.GOV.BCB.PIX0113${merchantKey}5204000053039865405${total.replace('.','')}5802BR5920Adega Lounge6009SAO PAULO62070503***6304`;
-  /* --------------------------------------- */
+  // ----- Monta payload EMV ---------------------------------
+  const idPayload  = "000201";
+  const idPix      = "26";
+  const guid       = "0014BR.GOV.BCB.PIX";
+  const chave      = `01${PIX_CHAVE.length.toString().padStart(2,"0")}${PIX_CHAVE}`;
+  const merchant   = idPix + (guid.length + chave.length).toString().padStart(2,"0") + guid + chave;
+  const merchantCat= "52040000";
+  const currency   = "5303986";
+  const amount     = `54${total.length.toString().padStart(2,"0")}${total.replace(".","")}`;
+  const country    = "5802BR";
+  const nameField  = `59${PIX_NOME.length.toString().padStart(2,"0")}${PIX_NOME}`;
+  const cityField  = `60${PIX_CIDADE.length.toString().padStart(2,"0")}${PIX_CIDADE}`;
+  const addData    = "62070503***";
+  const crc16Init  = "6304";
+
+  const payloadSemCRC = idPayload + merchant + merchantCat + currency + amount + country + nameField + cityField + addData + crc16Init;
+
+  const crc = gerarCRC16(payloadSemCRC);
+  const payload = payloadSemCRC + crc;
+  // ----------------------------------------------------------
 
   QRCode.toCanvas(pixQRCodeCanvas, payload, { width: 220 }, err => {
     if (err) console.error(err);
   });
   modalPix.style.display="flex";
+}
+
+/* ---- Função CRC16-CCITT (obrigatória no Pix) ---- */
+function gerarCRC16(str){
+  let polinomio = 0x1021;
+  let result    = 0xFFFF;
+
+  for (let i=0; i<str.length; i++){
+    result ^= str.charCodeAt(i)<<8;
+    for(let j=0;j<8;j++){
+      result = (result & 0x8000) ? (result<<1) ^ polinomio : result<<1;
+      result &= 0xFFFF;
+    }
+  }
+  return result.toString(16).toUpperCase().padStart(4,"0");
 }
 
 /* ---------- Listeners ---------- */
