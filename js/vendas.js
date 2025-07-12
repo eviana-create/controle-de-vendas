@@ -328,15 +328,45 @@ function resetModalFiado() {
   renderFiado();
 }
 
-/* ---------- PIX estático ---------- */
-// Payload fixo para testes
-const PIX_PAYLOAD_STATIC =
-  "00020101021126360014BR.GOV.BCB.PIX0114+55119335653055204000053039865802BR5925RAFAEL DOUGLAS CIRIACO CA6008SAOPAULO61080132305062070503***63042B59";
+/* ---------- PIX dinâmico (valor correto) ---------- */
+/*
+ *  Payload base SEM tag 54 nem CRC:
+ *      – até a tag 53 (inclusive):             PIX_PREFIX
+ *      – da tag 58 até o “6304” placeholder:   PIX_SUFFIX
+ */
+const PIX_PREFIX = "00020101021126360014BR.GOV.BCB.PIX0114+5511933565305520400005303986";
+const PIX_SUFFIX = "5802BR5925RAFAEL DOUGLAS CIRIACO CA6008SAOPAULO61080132305062070503***6304";
+
+/* CRC‑16/CCITT‑F0 */
+function crc16(str){
+  let crc = 0xFFFF, pol = 0x1021;
+  for (let i = 0; i < str.length; i++){
+    crc ^= str.charCodeAt(i)<<8;
+    for (let j=0;j<8;j++){
+      crc = (crc & 0x8000) ? (crc<<1)^pol : (crc<<1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4,"0");
+}
+
+function montarPayloadPix(valor){
+  // valor com 2 casas decimais (mantém o ponto)!
+  const valStr = valor.toFixed(2);              // "12.34"
+  const tag54  = "54" + valStr.length.toString().padStart(2,"0") + valStr;
+
+  const semCRC = PIX_PREFIX + tag54 + PIX_SUFFIX;
+  const crc    = crc16(semCRC);
+  return semCRC + crc;
+}
 
 function gerarPixQRCode() {
   if (vendas.length === 0) return alert("Adicione itens antes de pagar.");
 
-  QRCode.toCanvas(pixQRCodeCanvas, PIX_PAYLOAD_STATIC, { width: 220 }, err => {
+  const total = vendas.reduce((s,i)=>s+i.subtotal,0);
+  const payload = montarPayloadPix(total);
+
+  QRCode.toCanvas(pixQRCodeCanvas, payload, { width: 220 }, err => {
     if (err) {
       console.error("Erro ao gerar QR Code PIX:", err);
       alert("Erro ao gerar QR Code PIX.");
@@ -364,7 +394,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* Finalizar expediente */
   btnFinalizar?.addEventListener("click", async () => {
     if (!confirm("Deseja finalizar o expediente?")) return;
-    const total = parseFloat(totalDiaSpan.textContent.replace("R$", "").replace(",", ".")) || 0;
+    const total = parseFloat(totalDiaSpan.textContent.replace("R$","").replace(",","."))||0;
     try {
       await addDoc(collection(db,"expedientes"), { data:new Date(), total, usuario:auth.currentUser.uid });
       alert("Expediente finalizado!");
