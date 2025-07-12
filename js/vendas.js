@@ -349,57 +349,24 @@ function resetModalFiado() {
   renderFiado();
 }
 
-/* ---------- PIX ---------- */
-// Configurações do recebedor
-const PIX_CHAVE = "+5511950324119";
-const PIX_NOME = "EMERSON VIANA"; // Máx 25 chars sem acentos
-const PIX_CIDADE = "SAO BERNARDO"; // Máx 15 chars sem acentos
+/* ---------- PIX estático ---------- */
+// Payload PIX estático fornecido (fixo para testes)
+const PIX_PAYLOAD_STATIC = "00020101021126360014BR.GOV.BCB.PIX0114+55119335653055204000053039865802BR5925RAFAEL DOUGLAS CIRIACO CA6008SAOPAULO61080132305062070503***63042B59";
 
 function gerarPixQRCode() {
-  if (vendas.length === 0) return alert("Adicione itens antes de pagar.");
-
-  const total = vendas.reduce((s, i) => s + i.subtotal, 0).toFixed(2);
-
-  // Monta payload EMV Pix
-  const idPayload = "000201";
-  const idPix = "26";
-  const guid = "0014BR.GOV.BCB.PIX";
-  const chave = `01${PIX_CHAVE.length.toString().padStart(2, "0")}${PIX_CHAVE}`;
-  const merchant = idPix + (guid.length + chave.length).toString().padStart(2, "0") + guid + chave;
-  const merchantCat = "52040000";
-  const currency = "5303986";
-  const amount = `54${total.length.toString().padStart(2, "0")}${total.replace(".", "")}`;
-  const country = "5802BR";
-  const nameField = `59${PIX_NOME.length.toString().padStart(2, "0")}${PIX_NOME}`;
-  const cityField = `60${PIX_CIDADE.length.toString().padStart(2, "0")}${PIX_CIDADE}`;
-  const addData = "62070503***";
-  const crc16Init = "6304";
-
-  const payloadSemCRC =
-    idPayload + merchant + merchantCat + currency + amount + country + nameField + cityField + addData + crc16Init;
-
-  const crc = gerarCRC16(payloadSemCRC);
-  const payload = payloadSemCRC + crc;
-
-  QRCode.toCanvas(pixQRCodeCanvas, payload, { width: 220 }, err => {
-    if (err) console.error(err);
-  });
-  modalPix.style.display = "flex";
-}
-
-// Função CRC16-CCITT (obrigatória no Pix)
-function gerarCRC16(str) {
-  let polinomio = 0x1021;
-  let result = 0xffff;
-
-  for (let i = 0; i < str.length; i++) {
-    result ^= str.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
-      result = (result & 0x8000) ? (result << 1) ^ polinomio : result << 1;
-      result &= 0xffff;
-    }
+  if (vendas.length === 0) {
+    alert("Adicione itens antes de pagar.");
+    return;
   }
-  return result.toString(16).toUpperCase().padStart(4, "0");
+
+  QRCode.toCanvas(pixQRCodeCanvas, PIX_PAYLOAD_STATIC, { width: 220 }, err => {
+    if (err) {
+      console.error("Erro ao gerar QR Code PIX:", err);
+      alert("Erro ao gerar QR Code PIX.");
+    }
+  });
+
+  modalPix.style.display = "flex";
 }
 
 /* ---------- Listeners ---------- */
