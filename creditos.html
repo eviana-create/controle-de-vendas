@@ -6,15 +6,22 @@
   <title>Clientes com Crédito - Adega Lounge</title>
   <link rel="stylesheet" href="./css/style.css" />
   <style>
-    /* Estilo básico para modal */
+    /* Estilo para modal compatível com mobile */
     #modal-adicionar-credito {
-      display: none;
+      visibility: hidden;
+      opacity: 0;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.5);
+      display: flex;
       justify-content: center;
       align-items: center;
       z-index: 10000;
+      transition: visibility 0.2s, opacity 0.2s ease-in-out;
+    }
+    #modal-adicionar-credito.aberto {
+      visibility: visible;
+      opacity: 1;
     }
     #modal-adicionar-credito .modal-conteudo {
       background: white;
@@ -22,12 +29,13 @@
       border-radius: 8px;
       max-width: 400px;
       width: 90%;
+      box-sizing: border-box;
     }
     #modal-adicionar-credito label {
       display: block;
       margin-top: 1rem;
     }
-    #modal-adicionar-credito input, #modal-adicionar-credito select {
+    #modal-adicionar-credito input {
       width: 100%;
       padding: 0.5rem;
       margin-top: 0.3rem;
@@ -36,6 +44,8 @@
     #modal-adicionar-credito button {
       margin-top: 1rem;
       padding: 0.6rem 1.2rem;
+      cursor: pointer;
+      touch-action: manipulation;
     }
     #modal-adicionar-credito .btn-fechar {
       background: #ccc;
@@ -48,6 +58,7 @@
       border: none;
       color: white;
       border-radius: 4px;
+      touch-action: manipulation;
     }
   </style>
 </head>
@@ -72,7 +83,7 @@
     </table>
   </div>
 
-  <!-- Modal para adicionar crédito -->
+  <!-- Modal -->
   <div id="modal-adicionar-credito">
     <div class="modal-conteudo">
       <h2>Adicionar Crédito</h2>
@@ -97,30 +108,32 @@
   <script type="module" src="./js/creditos.js"></script>
 
   <script>
-    // Controle do modal
     const btnAbrirModal = document.getElementById('btn-abrir-modal');
     const modal = document.getElementById('modal-adicionar-credito');
     const btnFecharModal = document.getElementById('btn-fechar-modal');
     const formAdicionarCredito = document.getElementById('form-adicionar-credito');
 
+    // Abrir modal
     btnAbrirModal.addEventListener('click', () => {
-      modal.style.display = 'flex';
+      modal.classList.add('aberto');
     });
 
+    // Fechar modal com botão
     btnFecharModal.addEventListener('click', () => {
-      modal.style.display = 'none';
+      modal.classList.remove('aberto');
       formAdicionarCredito.reset();
     });
 
-    modal.addEventListener('click', e => {
+    // Fechar modal ao clicar fora
+    modal.addEventListener('click', (e) => {
       if (e.target === modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('aberto');
         formAdicionarCredito.reset();
       }
     });
 
-    // Submissão do formulário - só exibe alerta (integre com Firebase no creditos.js)
-    formAdicionarCredito.addEventListener('submit', e => {
+    // Submissão do formulário
+    formAdicionarCredito.addEventListener('submit', (e) => {
       e.preventDefault();
       const cliente = formAdicionarCredito.cliente.value.trim();
       const produto = formAdicionarCredito.produto.value.trim();
@@ -131,28 +144,24 @@
         return;
       }
 
-      // Aqui você pode chamar uma função do creditos.js para salvar no Firebase
       alert(`Novo crédito salvo:\nCliente: ${cliente}\nProduto: ${produto}\nValor: R$ ${valor.toFixed(2)}`);
-
-      modal.style.display = 'none';
+      modal.classList.remove('aberto');
       formAdicionarCredito.reset();
-      // Atualize a tabela de créditos após salvar (função no creditos.js)
     });
 
-    // Função para criar botão pagar (exemplo)
+    // Exemplo: botão pagar
     function criarBotaoPagar(id) {
       const btn = document.createElement('button');
       btn.className = 'pagar-btn';
       btn.textContent = 'Pagar';
       btn.onclick = () => {
-        alert(`Abrir pagamento para crédito ID: ${id}`);
-        // Aqui chame função para processar pagamento e atualizar status no Firebase
+        alert(`Pagamento realizado para crédito ID: ${id}`);
       };
       return btn;
     }
 
-    // Exemplo de uso: adicionar um botão pagar na última coluna de cada linha
-    // A função real para renderizar a tabela deve estar em creditos.js e usar criarBotaoPagar
+    // Exporte `criarBotaoPagar` no creditos.js se necessário
+    window.criarBotaoPagar = criarBotaoPagar;
   </script>
 </body>
 </html>
