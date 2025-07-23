@@ -74,6 +74,7 @@ async function carregarCreditos() {
       tabelaCreditosBody.appendChild(tr);
     }
 
+    // ✅ Adicionando os ouvintes após montar a tabela
     document.querySelectorAll('.pagar-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const cliente = btn.dataset.cliente;
