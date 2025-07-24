@@ -1,166 +1,112 @@
-import { auth, db } from "./firebaseConfig.js";
-import {
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { db } from "./firebaseConfig.js";
 import {
   collection,
-  addDoc,
-  getDoc,
   getDocs,
-  serverTimestamp,
   query,
-  orderBy,
-  doc
+  orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ---------- DOM ---------- */
-const btnFinalizar = document.getElementById("btn-finalizar");
-const btnHistorico = document.getElementById("btn-historico");
-const btnVoltar = document.getElementById("btn-voltar");
-const container = document.getElementById("historico-container");
+document.addEventListener("DOMContentLoaded", async () => {
+  const container = document.getElementById("historico-container");
+  const filtroData = document.getElementById("filtro-data");
+  const btnFiltrar = document.getElementById("btn-filtrar");
 
-/* ---------- Controle de acesso ---------- */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) return (window.location.href = "login.html");
+  if (!container) return;
 
-  const snap = await getDoc(doc(db, "usuarios", user.uid));
-  const perfil = snap.exists() ? snap.data().tipo : null;
+  const vendasRef = collection(db, "vendas");
+  const vendasQuery = query(vendasRef, orderBy("timestamp", "desc"));
 
-  if (perfil !== "admin") {
-    alert("Acesso restrito a administradores.");
-    await signOut(auth);
-    window.location.href = "login.html";
-    return;
-  }
-
-  carregarHistorico();
-});
-
-/* ---------- Finalizar expediente ---------- */
-btnFinalizar?.addEventListener("click", async () => {
-  if (!confirm("Confirma o encerramento do expediente?")) return;
+  let vendas = [];
 
   try {
-    await addDoc(collection(db, "historico"), {
-      evento: "Expediente finalizado",
-      criadoEm: serverTimestamp()
-    });
-    alert("Expediente finalizado e registrado no histórico.");
-    carregarHistorico();
-  } catch (err) {
-    console.error(err);
-    alert("Erro ao registrar expediente.");
-  }
-});
+    const snapshot = await getDocs(vendasQuery);
+    if (snapshot.empty) {
+      alert("Nenhum evento registrado.");
+      return;
+    }
 
-/* ---------- Botão ver histórico ---------- */
-btnHistorico?.addEventListener("click", carregarHistorico);
-
-/* ---------- Botão voltar ---------- */
-btnVoltar?.addEventListener("click", () => {
-  window.history.back();
-});
-
-/* ---------- Carrega histórico agrupado por dia e produto ---------- */
-async function carregarHistorico() {
-  container.innerHTML = "<p>Carregando…</p>";
-
-  try {
-    // 1. VENDAS
-    const vendasSnap = await getDocs(
-      query(collection(db, "vendas"), orderBy("criadoEm", "desc"))
-    );
-
-    const vendasAgrupadas = {};
-
-    vendasSnap.forEach((doc) => {
+    snapshot.forEach(doc => {
       const venda = doc.data();
-      const data = venda.criadoEm?.toDate?.() || new Date();
-      const dia = data.toLocaleDateString("pt-BR");
-
-      if (!vendasAgrupadas[dia]) vendasAgrupadas[dia] = {};
-
-      const produto = venda.produto;
-      if (!vendasAgrupadas[dia][produto]) {
-        vendasAgrupadas[dia][produto] = {
-          quantidade: 0,
-          subtotal: 0
-        };
-      }
-
-      vendasAgrupadas[dia][produto].quantidade += venda.quantidade;
-      vendasAgrupadas[dia][produto].subtotal += venda.subtotal;
+      vendas.push(venda);
     });
 
-    // 2. LOG
-    const logSnap = await getDocs(
-      query(collection(db, "historico"), orderBy("criadoEm", "desc"))
-    );
+    // Ao carregar a página, mostrar apenas vendas do dia atual
+    const hoje = new Date();
+    const hojeStr = hoje.toISOString().split("T")[0];
+    exibirVendasPorData(vendas, hojeStr);
 
-    const eventos = [];
-    logSnap.forEach((d) => {
-      const { evento, criadoEm } = d.data();
-      const dataStr = criadoEm?.toDate?.().toLocaleString("pt-BR") || "N/A";
-      eventos.push(`${dataStr} — ${evento}`);
+    // Evento de filtro manual
+    btnFiltrar.addEventListener("click", () => {
+      const dataSelecionada = filtroData.value;
+      if (dataSelecionada) {
+        exibirVendasPorData(vendas, dataSelecionada);
+      } else {
+        exibirVendasPorData(vendas, hojeStr); // volta para hoje
+      }
     });
 
-    // 3. MONTA HTML
-    let html = "";
-
-    if (Object.keys(vendasAgrupadas).length) {
-      html += "<h2>📊 Vendas Diárias (Agrupadas por Produto)</h2>";
-
-      for (const [dia, produtos] of Object.entries(vendasAgrupadas)) {
-        const linhas = Object.entries(produtos).map(([produto, info]) => `
-            <tr>
-              <td>${produto}</td>
-              <td>${info.quantidade}</td>
-              <td>R$ ${info.subtotal.toFixed(2)}</td>
-            </tr>
-          `).join("");
-
-        const totalDia = Object.values(produtos)
-          .reduce((acc, p) => acc + p.subtotal, 0);
-
-        html += `
-          <section class="bloco-dia">
-            <h3>🗓️ ${dia}</h3>
-            <table class="tabela-dia">
-              <thead>
-                <tr>
-                  <th>Produto</th>
-                  <th>Quantidade</th>
-                  <th>Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${linhas}
-                <tr style="font-weight:bold; background:#f2f2f2;">
-                  <td colspan="2">TOTAL DO DIA</td>
-                  <td>R$ ${totalDia.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </section>
-        `;
-      }
-    } else {
-      html += "<p>Sem vendas registradas.</p>";
-    }
-
-    // LOG DE EVENTOS
-    html += "<h2>🗒️ Log de Eventos</h2>";
-    if (eventos.length) {
-      html += "<ul>" + eventos.map(e => `<li>${e}</li>`).join("") + "</ul>";
-    } else {
-      html += "<p>Sem eventos registrados.</p>";
-    }
-
-    container.innerHTML = html;
-
-  } catch (err) {
-    console.error(err);
-    container.innerHTML = "<p>Erro ao carregar histórico.</p>";
+  } catch (erro) {
+    console.error("Erro ao carregar histórico:", erro);
+    alert("Erro ao carregar histórico.");
   }
-}
+
+  function exibirVendasPorData(lista, dataStr) {
+    container.innerHTML = ""; // Limpa antes
+
+    const vendasFiltradas = lista.filter(v => {
+      const dataVenda = new Date(v.timestamp?.seconds * 1000 || 0);
+      const dataVendaStr = dataVenda.toISOString().split("T")[0];
+      return dataVendaStr === dataStr;
+    });
+
+    if (vendasFiltradas.length === 0) {
+      container.innerHTML = `<p>Nenhuma venda registrada para ${dataStr}.</p>`;
+      return;
+    }
+
+    const tabela = document.createElement("table");
+    tabela.className = "tabela-dia";
+
+    const thead = document.createElement("thead");
+    thead.innerHTML = `
+      <tr>
+        <th>Produto</th>
+        <th>Qtd</th>
+        <th>Preço</th>
+        <th>Total</th>
+      </tr>
+    `;
+    tabela.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    let totalDia = 0;
+
+    vendasFiltradas.forEach(venda => {
+      if (!venda.itens || !Array.isArray(venda.itens)) return;
+
+      venda.itens.forEach(item => {
+        const subtotal = item.preco * item.quantidade;
+        totalDia += subtotal;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${item.nome}</td>
+          <td>${item.quantidade}</td>
+          <td>R$ ${item.preco.toFixed(2)}</td>
+          <td>R$ ${subtotal.toFixed(2)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    });
+
+    const rowTotal = document.createElement("tr");
+    rowTotal.innerHTML = `
+      <td colspan="3"><strong>Total do Dia</strong></td>
+      <td><strong>R$ ${totalDia.toFixed(2)}</strong></td>
+    `;
+    tbody.appendChild(rowTotal);
+
+    tabela.appendChild(tbody);
+    container.appendChild(tabela);
+  }
+});
