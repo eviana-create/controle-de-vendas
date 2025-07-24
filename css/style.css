@@ -151,6 +151,7 @@ th {
 }
 
 /* Estilo para a tabela do histórico */
+/* Estilo padrão permanece igual */
 .tabela-dia {
   width: 100%;
   border-collapse: collapse;
@@ -181,13 +182,7 @@ th {
   background-color: #e9ecef;
 }
 
-/* Responsivo: deixa a tabela scrollável em telas pequenas */
-@media (max-width: 600px) {
-  .tabela-dia {
-    display: block;
-    overflow-x: auto;
-  }
-}
+/* Botão voltar continua igual */
 .voltar-container {
   margin-top: 20px;
   text-align: center;
@@ -197,6 +192,28 @@ th {
   font-size: 1rem;
   cursor: pointer;
 }
+
+/* Responsivo: ADICIONE esse bloco para mobile */
+@media (max-width: 600px) {
+  .tabela-dia {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tabela-dia th,
+  .tabela-dia td {
+    font-size: 0.85rem;
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  .container, .voltar-container {
+    overflow-x: auto;
+  }
+}
+
 /* Melhor compatibilidade para o <select> */
 /* css/style.css — seletores finais */
 select {
