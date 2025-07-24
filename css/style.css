@@ -120,7 +120,22 @@ th {
 
 
 /* Responsividade */
+/* RESPONSIVO (ATUALIZADO) */
 @media (max-width: 600px) {
+  /* Oculta apenas a coluna de data (4ª), deixa a 5ª visível */
+  th:nth-child(4), td:nth-child(4) {
+    display: none;
+  }
+
+  /* Botão "Pagar" — ocupa a largura da célula no mobile */
+  #tabela-creditos button.pagar-btn {
+    width: 100%;
+    font-size: 1rem;
+    padding: 12px;
+    margin-top: 5px;
+    box-sizing: border-box;
+  }
+
   input, button, select {
     width: 100%;
     box-sizing: border-box;
@@ -130,15 +145,11 @@ th {
     font-size: 14px;
   }
 
-  th:nth-child(4), td:nth-child(4),
-  th:nth-child(5), td:nth-child(5) {
-    display: none;
-  }
-
   canvas {
     max-width: 100%;
   }
 }
+
 /* Estilo para a tabela do histórico */
 .tabela-dia {
   width: 100%;

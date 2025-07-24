@@ -1,7 +1,7 @@
 /* ===========================
    service-worker.js  v1.1.7
    =========================== */
-const CACHE_NAME = "adega-v1.1.8"; // AUMENTE SEMPRE QUE MUDAR ARQUIVOS!
+const CACHE_NAME = "adega-v1.2.0"; // AUMENTE SEMPRE QUE MUDAR ARQUIVOS!
 
 const urlsToCache = [
   "./",
