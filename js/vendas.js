@@ -192,12 +192,13 @@ async function registrarVenda(e){
 
 /* ---------- Modal Fiado ---------- */
 function resetModalFiado(){
-  fiadoItens=[];
-  fiadoClienteInput.value="";
-  fiadoProdutoSelect.value="";
-  fiadoQuantidadeInput.value="";
+  fiadoItens = [];
+  if(fiadoClienteInput) fiadoClienteInput.value = "";
+  if(fiadoProdutoSelect) fiadoProdutoSelect.value = "";
+  if(fiadoQuantidadeInput) fiadoQuantidadeInput.value = "";
   renderFiado();
 }
+
 
 function renderFiado(){
   fiadoItensLista.innerHTML="";
