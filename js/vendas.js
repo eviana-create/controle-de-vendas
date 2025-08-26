@@ -1,4 +1,3 @@
-/* ============ js/vendas.js ============ */
 import { auth, db } from "./firebaseConfig.js";
 import {
   onAuthStateChanged,
@@ -31,19 +30,19 @@ const formVenda            = document.getElementById("form-registro-venda");
 const totalDiaSpan         = document.getElementById("total-dia");
 const btnFinalizar         = document.getElementById("finalizar-expediente");
 
-/* Modal fiado */
+// Modal Fiado
 const modalFiado           = document.getElementById("modal-fiado");
 const btnFiado             = document.getElementById("btn-fiado");
 const btnCancelarFiado     = document.getElementById("btn-cancelar-fiado");
 const btnFiadoAddItem      = document.getElementById("fiado-add-item-btn");
 const btnSalvarFiado       = document.getElementById("btn-salvar-fiado");
-const fiadoClienteInput    = document.getElementById("fiado-cliente");
+const fiadoClienteSelect   = document.getElementById("fiado-cliente-select");
 const fiadoProdutoSelect   = document.getElementById("fiado-produto");
 const fiadoQuantidadeInput = document.getElementById("fiado-quantidade");
 const fiadoItensLista      = document.getElementById("fiado-itens-lista");
 const fiadoSubtotalSpan    = document.getElementById("fiado-subtotal");
 
-/* Modal PIX */
+// Modal PIX
 const modalPix         = document.getElementById("modal-pix");
 const btnPagarPix      = document.getElementById("btn-pagar-pix");
 const btnFecharPix     = document.getElementById("btn-fechar-pix");
@@ -64,8 +63,10 @@ onAuthStateChanged(auth, async user => {
   }
 
   await carregarProdutos();
+  await carregarClientes();
   await carregarLucroDoDia();
   await carregarVendasDoDia();
+  await carregarCreditosDoDia();
 });
 
 /* ---------- Carregar estoque ---------- */
@@ -107,6 +108,25 @@ function preencherSelectFiado() {
     opt.textContent = `${p.nome} — R$ ${p.preco.toFixed(2)} (Qtd: ${p.quantidade})`;
     fiadoProdutoSelect.appendChild(opt);
   });
+}
+
+/* ---------- Carregar clientes ---------- */
+async function carregarClientes() {
+  if (!fiadoClienteSelect) return;
+  fiadoClienteSelect.innerHTML = `<option value="">Selecione o cliente</option>`;
+
+  try {
+    const snap = await getDocs(collection(db, "clientes"));
+    snap.forEach(doc => {
+      const cliente = doc.data().nome;
+      const opt = document.createElement("option");
+      opt.value = cliente;
+      opt.textContent = cliente;
+      fiadoClienteSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error("Erro ao carregar clientes:", err);
+  }
 }
 
 /* ---------- Venda à vista ---------- */
@@ -234,12 +254,36 @@ async function carregarVendasDoDia() {
   });
 }
 
-/* ---------- Fiado ---------- */
-function atualizarSubtotalFiado() {
-  fiadoSubtotalSpan.textContent =
-    `R$ ${fiadoItens.reduce((s,i)=>s+i.subtotal,0).toFixed(2)}`;
+/* ---------- Créditos (Fiado) do dia ---------- */
+async function carregarCreditosDoDia() {
+  const corpo = document.querySelector("#tabela-creditos-dia tbody");
+  if (!corpo) return;
+
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const snap = await getDocs(
+    query(collection(db,"creditos"), where("criadoEm",">=", Timestamp.fromDate(hoje)))
+  );
+
+  corpo.innerHTML = "";
+  if (snap.empty) {
+    corpo.innerHTML = `<tr><td colspan="4">Nenhum crédito hoje.</td></tr>`;
+    return;
+  }
+
+  snap.forEach(d => {
+    const { cliente, produto, quantidade, subtotal } = d.data();
+    corpo.insertAdjacentHTML("beforeend",`
+      <tr>
+        <td>${cliente}</td>
+        <td>${produto}</td>
+        <td>${quantidade}</td>
+        <td>R$ ${subtotal.toFixed(2)}</td>
+      </tr>
+    `);
+  });
 }
 
+/* ---------- Fiado ---------- */
 function renderFiado() {
   fiadoItensLista.innerHTML = "";
   fiadoItens.forEach((i,idx) => {
@@ -253,13 +297,14 @@ function renderFiado() {
       renderFiado();
     };
   });
-  atualizarSubtotalFiado();
+  fiadoSubtotalSpan.textContent =
+    `R$ ${fiadoItens.reduce((s,i)=>s+i.subtotal,0).toFixed(2)}`;
 }
 
 function adicionarItemFiado() {
   const id  = fiadoProdutoSelect.value;
   const qtd = parseInt(fiadoQuantidadeInput.value,10);
-  const cliente = fiadoClienteInput.value.trim();
+  const cliente = fiadoClienteSelect.value;
 
   if (!cliente)               return alert("Informe o cliente.");
   if (!id || !qtd || qtd<=0 ) return alert("Preencha produto e quantidade.");
@@ -288,32 +333,31 @@ function adicionarItemFiado() {
 }
 
 async function salvarFiado() {
-  const cliente = fiadoClienteInput.value.trim();
-  if (!cliente)          return alert("Informe o cliente.");
-  if (!fiadoItens.length) return alert("Adicione itens.");
+  const cliente = fiadoClienteSelect.value;
+  if (!cliente) return alert("Informe o cliente.");
+  if (fiadoItens.length === 0) return alert("Adicione itens.");
 
   try {
-    await Promise.all(
-      fiadoItens.map(async i => {
-        await addDoc(collection(db,"creditos"),{
-          cliente,
-          produto:i.nome,
-          quantidade:i.quantidade,
-          subtotal:i.subtotal,
-          criadoEm:serverTimestamp(),
-          usuario:auth.currentUser.uid
-        });
-        const ref = doc(db,"estoque",i.id);
-        const novaQtd = produtosMap.get(i.id).quantidade - i.quantidade;
-        await updateDoc(ref, { quantidade:novaQtd });
-        produtosMap.get(i.id).quantidade = novaQtd;
-      })
-    );
+    await Promise.all(fiadoItens.map(async i => {
+      await addDoc(collection(db,"creditos"),{
+        cliente,
+        produto:i.nome,
+        quantidade:i.quantidade,
+        subtotal:i.subtotal,
+        criadoEm:serverTimestamp(),
+        usuario:auth.currentUser.uid
+      });
+      const ref = doc(db,"estoque",i.id);
+      const novaQtd = produtosMap.get(i.id).quantidade - i.quantidade;
+      await updateDoc(ref, { quantidade:novaQtd });
+      produtosMap.get(i.id).quantidade = novaQtd;
+    }));
 
     alert("Crédito salvo!");
     resetModalFiado();
     modalFiado.style.display = "none";
     await carregarProdutos();
+    await carregarCreditosDoDia();
   } catch (err) {
     console.error(err);
     alert("Erro ao salvar crédito.");
@@ -322,22 +366,16 @@ async function salvarFiado() {
 
 function resetModalFiado() {
   fiadoItens = [];
-  fiadoClienteInput.value = "";
+  fiadoClienteSelect.value = "";
   fiadoProdutoSelect.value = "";
   fiadoQuantidadeInput.value = "";
   renderFiado();
 }
 
-/* ---------- PIX dinâmico (valor correto) ---------- */
-/*
- *  Payload base SEM tag 54 nem CRC:
- *      – até a tag 53 (inclusive):             PIX_PREFIX
- *      – da tag 58 até o “6304” placeholder:   PIX_SUFFIX
- */
+/* ---------- PIX dinâmico ---------- */
 const PIX_PREFIX = "00020101021126360014BR.GOV.BCB.PIX0114+5511933565305520400005303986";
 const PIX_SUFFIX = "5802BR5925RAFAEL DOUGLAS CIRIACO CA6008SAOPAULO61080132305062070503***6304";
 
-/* CRC‑16/CCITT‑F0 */
 function crc16(str){
   let crc = 0xFFFF, pol = 0x1021;
   for (let i = 0; i < str.length; i++){
@@ -351,10 +389,8 @@ function crc16(str){
 }
 
 function montarPayloadPix(valor){
-  // valor com 2 casas decimais (mantém o ponto)!
-  const valStr = valor.toFixed(2);              // "12.34"
+  const valStr = valor.toFixed(2);
   const tag54  = "54" + valStr.length.toString().padStart(2,"0") + valStr;
-
   const semCRC = PIX_PREFIX + tag54 + PIX_SUFFIX;
   const crc    = crc16(semCRC);
   return semCRC + crc;
@@ -362,7 +398,6 @@ function montarPayloadPix(valor){
 
 function gerarPixQRCode() {
   if (vendas.length === 0) return alert("Adicione itens antes de pagar.");
-
   const total = vendas.reduce((s,i)=>s+i.subtotal,0);
   const payload = montarPayloadPix(total);
 
@@ -381,7 +416,11 @@ document.addEventListener("DOMContentLoaded", () => {
   formVenda?.addEventListener("submit", registrarVenda);
 
   /* Fiado */
-  btnFiado?.addEventListener("click", () => { resetModalFiado(); modalFiado.style.display = "flex"; });
+  btnFiado?.addEventListener("click", async () => {
+    resetModalFiado();
+    await carregarClientes();
+    modalFiado.style.display = "flex";
+  });
   btnCancelarFiado?.addEventListener("click", () => (modalFiado.style.display = "none"));
   btnFiadoAddItem?.addEventListener("click", adicionarItemFiado);
   btnSalvarFiado?.addEventListener("click", salvarFiado);
@@ -394,12 +433,13 @@ document.addEventListener("DOMContentLoaded", () => {
   /* Finalizar expediente */
   btnFinalizar?.addEventListener("click", async () => {
     if (!confirm("Deseja finalizar o expediente?")) return;
-    const total = parseFloat(totalDiaSpan.textContent.replace("R$","").replace(",","."))||0;
+    const total = parseFloat(totalDiaSpan.textContent.replace("R$","").replace(",",".").trim())||0;
     try {
       await addDoc(collection(db,"expedientes"), { data:new Date(), total, usuario:auth.currentUser.uid });
       alert("Expediente finalizado!");
       totalDiaSpan.textContent = "R$ 0,00";
       document.querySelector("#tabela-vendas-dia tbody").innerHTML = "";
+      document.querySelector("#tabela-creditos-dia tbody").innerHTML = "<tr><td colspan='4'>Nenhum crédito hoje.</td></tr>";
     } catch (err) {
       console.error(err);
       alert("Erro ao finalizar expediente.");
